@@ -12,7 +12,7 @@ import type {
   ITree,
   IGrass,
   IStone,
-  IStone2,
+  // IStone2,
   IBuild,
   IUpdateMessage,
 } from '../../../models/api';
@@ -40,7 +40,6 @@ export default class World {
 
   private _ids: string[];
   private _item: ILocationUnits;
-  private _array: ILocationUnits[];
   private _x: number;
   private _y: number;
   private _number: number;
@@ -50,7 +49,7 @@ export default class World {
   private _position: IPosition;
   private _trees: ITree[];
   private _stones: IStone[];
-  private _stones2: IStone2[];
+  // private _stones2: IStone2[];
   private _builds: IBuild[];
   private _grasses: IGrass[];
   private _SIZE = Number(process.env.WORLD); // количество "слоев" вокруг центральной локации
@@ -83,13 +82,24 @@ export default class World {
         else config = defaultLocation(x - this._SIZE, y - this._SIZE);
 
         this._builds = [];
-        if ((x >= this._SIZE - 2 && x <= this._SIZE + 2 && y >= this._SIZE - 2 && y <= this._SIZE + 2)) {
+        if (
+          x >= this._SIZE - 2 &&
+          x <= this._SIZE + 2 &&
+          y >= this._SIZE - 2 &&
+          y <= this._SIZE + 2
+        ) {
           this._positions = [];
           this._number2 = BUILDS_GENERATION[y][x];
-          this._number = Helper.randomInteger(this._number2, Math.round(1.5 * this._number2));
+          this._number = Helper.randomInteger(
+            this._number2,
+            Math.round(1.5 * this._number2),
+          );
           if (x - this._SIZE === 0 && y - this._SIZE === 0) {
             this._number3 = 2.5;
-          } else if (Math.abs(x - this._SIZE) < 2 && Math.abs(y - this._SIZE) < 2) {
+          } else if (
+            Math.abs(x - this._SIZE) < 2 &&
+            Math.abs(y - this._SIZE) < 2
+          ) {
             this._number3 = 1.75;
           } else {
             this._number3 = 1.25;
@@ -107,7 +117,10 @@ export default class World {
             this._builds.push({
               ...this._position,
               scale: Helper.randomInteger(12, Math.round(12 * this._number3)),
-              scaleY: Helper.randomInteger(Math.round(15 * this._number3), Math.round(35 * this._number3)),
+              scaleY: Helper.randomInteger(
+                Math.round(15 * this._number3),
+                Math.round(35 * this._number3),
+              ),
               rotateX: Helper.randomInteger(-15, 15),
               rotateY: Helper.randomInteger(0, 360),
               rotateZ: Helper.randomInteger(-15, 15),
@@ -117,13 +130,22 @@ export default class World {
 
         this._stones = [];
         this._number2 = STONES_GENERATION[y][x];
-        this._number = Helper.randomInteger(Math.round(this._number2 * 1.5), Math.round(2.5 * this._number2));
+        this._number = Helper.randomInteger(
+          Math.round(this._number2 * 1.5),
+          Math.round(2.5 * this._number2),
+        );
         this._positions = [];
         for (let n = 0; n < this._number; ++n) {
           // Если есть строения - добавляем камни к ним
           if (this._builds.length > n) {
-            this._position.x = this._builds[n].x + Helper.randomInteger(-3, 3) + this._builds[n].scale * Helper.staticPlusOrMinus() / 2;
-            this._position.z = this._builds[n].z + Helper.randomInteger(-3, 3) + this._builds[n].scale * Helper.staticPlusOrMinus() / 2;
+            this._position.x =
+              this._builds[n].x +
+              Helper.randomInteger(-3, 3) +
+              (this._builds[n].scale * Helper.staticPlusOrMinus()) / 2;
+            this._position.z =
+              this._builds[n].z +
+              Helper.randomInteger(-3, 3) +
+              (this._builds[n].scale * Helper.staticPlusOrMinus()) / 2;
 
             this._positions.push(this._position);
             this._num1 = Math.random() * this._number2 + 1;
@@ -141,9 +163,11 @@ export default class World {
               0,
               0,
               (process.env.SIZE as unknown as number) * 0.4,
-              ((x === 0 && y === 0) ||
-                (x - this._SIZE === Number(process.env.START_X_HUMANS) && y - this._SIZE === Number(process.env.START_Y_HUMANS)) ||
-                (x - this._SIZE === Number(process.env.START_X_REPTILOIDS) && y - this._SIZE === Number(process.env.START_Y_REPTILOIDS))),
+              (x === 0 && y === 0) ||
+                (x - this._SIZE === Number(process.env.START_X_HUMANS) &&
+                  y - this._SIZE === Number(process.env.START_Y_HUMANS)) ||
+                (x - this._SIZE === Number(process.env.START_X_REPTILOIDS) &&
+                  y - this._SIZE === Number(process.env.START_Y_REPTILOIDS)),
             );
 
             this._positions.push(this._position);
@@ -190,7 +214,10 @@ export default class World {
         this._trees = [];
         this._positions = [];
         this._number2 = GREEN_GENERATION[y][x];
-        this._number = Helper.randomInteger(this._number2, Math.round(1.5 * this._number2));
+        this._number = Helper.randomInteger(
+          this._number2,
+          Math.round(1.5 * this._number2),
+        );
         for (let n = 0; n < this._number; ++n) {
           this._position = this._helper.getUniqueRandomPosition(
             this._positions,
@@ -203,7 +230,10 @@ export default class World {
           this._positions.push(this._position);
           this._trees.push({
             ...this._position,
-            scale: Helper.randomInteger(this._number2, Math.round(3 * this._number2)),
+            scale: Helper.randomInteger(
+              this._number2,
+              Math.round(3 * this._number2),
+            ),
             rotateX: Helper.randomInteger(-1, 15),
             rotateY: Helper.randomInteger(0, 360),
             rotateZ: Helper.randomInteger(-1, 15),
@@ -213,7 +243,10 @@ export default class World {
         this._grasses = [];
         this._positions = [];
         this._number2 = GREEN_GENERATION[y][x] / 2;
-        this._number = Helper.randomInteger(Math.round(0.5 * this._number2), Math.round(3 * this._number2));
+        this._number = Helper.randomInteger(
+          Math.round(0.5 * this._number2),
+          Math.round(3 * this._number2),
+        );
         for (let n = 0; n < this._number; ++n) {
           this._position = this._helper.getUniqueRandomPosition(
             this._positions,
@@ -245,7 +278,7 @@ export default class World {
           ...config,
           trees: this._trees,
           stones: this._stones,
-          stones2: this._stones2,
+          // stones2: this._stones2,
           grasses: this._grasses,
           builds: this._builds,
         };
@@ -259,9 +292,9 @@ export default class World {
     this.array.forEach((location: ILocationUnits) => {
       this._mesh = new THREE.Mesh(
         new THREE.BoxGeometry(
-          (Number(process.env.SIZE)) * 1.6,
+          Number(process.env.SIZE) * 1.6,
           1,
-          (Number(process.env.SIZE)) * 1.6,
+          Number(process.env.SIZE) * 1.6,
         ),
         new THREE.MeshBasicMaterial(),
       );
@@ -270,16 +303,15 @@ export default class World {
       this._group.add(this._mesh);
 
       // Respauns
-      if ((location.x === -3 && location.y === -3) || (location.x === 3 && location.y === 3)) {
-          this._mesh = new THREE.Mesh(
-            new THREE.BoxBufferGeometry(
-              20.5 * 1.25,
-              20.5 * 1.25,
-              20.5 * 1.25,
-            ),
-          );
-          this._mesh.position.set(0, -2, 0);
-          this._group.add(this._mesh);
+      if (
+        (location.x === -3 && location.y === -3) ||
+        (location.x === 3 && location.y === 3)
+      ) {
+        this._mesh = new THREE.Mesh(
+          new THREE.BoxBufferGeometry(20.5 * 1.25, 20.5 * 1.25, 20.5 * 1.25),
+        );
+        this._mesh.position.set(0, -2, 0);
+        this._group.add(this._mesh);
       }
 
       // Добавляем камни
@@ -290,9 +322,18 @@ export default class World {
       this.design[location.id].stones.forEach((stone) => {
         this._mesh = this._pseudo.clone();
         this._number = stone.scaleY < 4 ? 1.3 : stone.scaleY > 6 ? 1.2 : 1.1;
-        this._number2 = stone.scaleY > 10 ? 0.65 : stone.scaleY > 7 ? 0.75 : 0.85;
-        this._mesh.position.set(stone.x, -1 * (3 / stone.scaleY) * stone.scaleY - 3, stone.z);
-        this._mesh.scale.set(stone.scaleX * this._number * 1.25, stone.scaleY * this._number2, stone.scaleZ * this._number * 1.25);
+        this._number2 =
+          stone.scaleY > 10 ? 0.65 : stone.scaleY > 7 ? 0.75 : 0.85;
+        this._mesh.position.set(
+          stone.x,
+          -1 * (3 / stone.scaleY) * stone.scaleY - 3,
+          stone.z,
+        );
+        this._mesh.scale.set(
+          stone.scaleX * this._number * 1.25,
+          stone.scaleY * this._number2,
+          stone.scaleZ * this._number * 1.25,
+        );
         this._mesh.rotateY(Helper.degreesToRadians(stone.rotateY));
         this._group.add(this._mesh);
       });
@@ -300,7 +341,11 @@ export default class World {
       // Добавляем строения
       this.design[location.id].builds.forEach((build) => {
         this._mesh = new THREE.Mesh(
-          new THREE.BoxGeometry(build.scale * 1.25, build.scaleY, build.scale * 1.25),
+          new THREE.BoxGeometry(
+            build.scale * 1.25,
+            build.scaleY,
+            build.scale * 1.25,
+          ),
           new THREE.MeshBasicMaterial(),
         );
         this._mesh.position.set(build.x, build.scaleY * 0.25, build.z);
@@ -316,31 +361,25 @@ export default class World {
 
     // addNPC event subscribe
     self.emiiter.on(EmitterEvents.addNPC, (npc) => {
-       this._array = this.array.filter(
-        (location: ILocationUnits) => !location.users.length,
-      );
-      // Если тестирование - добовляем либо в центр, либо на любую локацию, в реальной ситуации - если нет локаций без игроков
-      if (Number(process.env.IS_TEST) === 1 || !this._array.length) {
-        if (Number(process.env.WORLD) === 0) {
-          this._num1 = 0;
-          this._num2 = 0;
-        } else {
-          this._num1 = Helper.randomInteger(0, Number(process.env.WORLD)) * Helper.staticPlusOrMinus();
-          this._num2 = Helper.randomInteger(0, Number(process.env.WORLD)) * Helper.staticPlusOrMinus();
-        }
-        this._id = this.getLocationIdByCoords(this._num1, this._num2);
+      if (Number(process.env.WORLD) === 0) {
+        this._num1 = 0;
+        this._num2 = 0;
       } else {
-        // В реальной ситуации, если есть локации без игроков - на любую такую локацию
-        this._num1 = Helper.randomInteger(0, this._array.length - 1);
-        this._id = this._array[this._num1].id;
+        this._num1 =
+          Helper.randomInteger(0, Number(process.env.WORLD)) *
+          Helper.staticPlusOrMinus();
+        this._num2 =
+          Helper.randomInteger(0, Number(process.env.WORLD)) *
+          Helper.staticPlusOrMinus();
       }
-      // console.log('World addNPC', Number(process.env.IS_TEST) === 1, this._num1, this._num2, this._id);
+      this._id = this.getLocationIdByCoords(this._num1, this._num2);
+      // console.log('World addNPC', this._num1, this._num2, this._id);
       this._addNPCOnLocation(self, npc.id, this._id);
     });
   }
 
   public setNewPlayer(self: ISelf, id: string, location: string): void {
-    console.log('World setNewPlayer', id);
+    // console.log('World setNewPlayer', id);
     this._addPlayerOnLocation(self, id, location);
   }
 
@@ -379,7 +418,11 @@ export default class World {
     );
   }
 
-  private _addPlayerOnLocation(self: ISelf, userId: string, locationId: string): void {
+  private _addPlayerOnLocation(
+    self: ISelf,
+    userId: string,
+    locationId: string,
+  ): void {
     this.locations[locationId].users.push(userId);
     this.array
       .find((location: ILocationUnits) => location.id === locationId)
@@ -387,7 +430,11 @@ export default class World {
     self.units[userId] = locationId;
   }
 
-  private _addNPCOnLocation(self: ISelf, NPCId: string, locationId: string): void {
+  private _addNPCOnLocation(
+    self: ISelf,
+    NPCId: string,
+    locationId: string,
+  ): void {
     this.locations[locationId].npc.push(NPCId);
     this.array
       .find((location: ILocationUnits) => location.id === locationId)
@@ -400,7 +447,9 @@ export default class World {
       (user) => user !== userId,
     );
     this._item = this.array.find((location) => location.id === locationId);
-    this._item.users = this._item.users.filter((user: string) => user !== userId);
+    this._item.users = this._item.users.filter(
+      (user: string) => user !== userId,
+    );
   }
 
   public removeNPCFromLocation(NPCId: string, locationId: string): void {

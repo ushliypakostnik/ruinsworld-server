@@ -28,14 +28,31 @@ export default class Lights {
     this._direction = new THREE.Vector3();
   }
 
-  public onNPCShot(self: ISelf, message: { unit: IUnit, target: string }): void {
+  public onNPCShot(
+    self: ISelf,
+    message: { unit: IUnit; target: string },
+  ): void {
     ++this.counter;
     // console.log('Lights onNPCShot()!', message.unit.race, this.counter);
 
     // self.scene[message.unit.id].getWorldDirection(this._direction).normalize();
     // this._direction.y = 0;
-    this._direction = self.scene[message.target].position.sub(new THREE.Vector3(message.unit.positionX, message.unit.positionY, message.unit.positionZ)).normalize();
-    this._direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), 0.10 * Helper.randomInteger(-1, 1) * (Math.random() + 0.5) * (1 / RacesConfig[message.unit.race].intelligence));
+    this._direction = self.scene[message.target].position
+      .sub(
+        new THREE.Vector3(
+          message.unit.positionX,
+          message.unit.positionY,
+          message.unit.positionZ,
+        ),
+      )
+      .normalize();
+    this._direction.applyAxisAngle(
+      new THREE.Vector3(0, 1, 0),
+      0.1 *
+        Helper.randomInteger(-1, 1) *
+        (Math.random() + 0.5) *
+        (1 / RacesConfig[message.unit.race].intelligence),
+    );
 
     this.list.push({
       id: this.counter,
@@ -43,7 +60,8 @@ export default class Lights {
       target: message.target,
       location: self.units[message.unit.id],
       positionX: message.unit.positionX,
-      positionY: message.unit.positionY + RacesConfig[message.unit.race].box.y / 4,
+      positionY:
+        message.unit.positionY + RacesConfig[message.unit.race].box.y / 4,
       positionZ: message.unit.positionZ,
       directionX: this._direction.x,
       directionY: this._direction.y,
@@ -82,28 +100,47 @@ export default class Lights {
         light.positionZ,
       );
       this._position.add(
-        this._velocity
-          .clone()
-          .multiplyScalar(
-            self.events.delta * 100,
-          ),
+        this._velocity.clone().multiplyScalar(self.events.delta * 100),
       );
       light.positionX = this._position.x;
       light.positionY = this._position.y;
       light.positionZ = this._position.z;
 
-      if (this._position.distanceTo(new THREE.Vector3(light.startX, light.startY, light.startZ)) > 300) {
+      if (
+        this._position.distanceTo(
+          new THREE.Vector3(light.startX, light.startY, light.startZ),
+        ) > 300
+      ) {
         this._lightOff(light.id);
       } else {
         if (!light.is) {
           if (self.scene[light.target])
-            light.is = this._position.distanceTo(new THREE.Vector3(self.scene[light.target].position.x, self.scene[light.target].position.y, self.scene[light.target].position.z)) < (Number(process.env.LIGHT_DAMAGE_DISTANCE) + RacesConfig[light.race].box.y / 5);
+            light.is =
+              this._position.distanceTo(
+                new THREE.Vector3(
+                  self.scene[light.target].position.x,
+                  self.scene[light.target].position.y,
+                  self.scene[light.target].position.z,
+                ),
+              ) <
+              Number(process.env.LIGHT_DAMAGE_DISTANCE) +
+                RacesConfig[light.race].box.y / 5;
           else light.is = false;
           if (light.is) {
-            self.emiiter.emit(EmitterEvents.npcShotHit, { id: light.target, race: light.race, value: this._position.distanceTo(new THREE.Vector3(self.scene[light.target].position.x, self.scene[light.target].position.y, self.scene[light.target].position.z)) });
+            self.emiiter.emit(EmitterEvents.npcShotHit, {
+              id: light.target,
+              race: light.race,
+              value: this._position.distanceTo(
+                new THREE.Vector3(
+                  self.scene[light.target].position.x,
+                  self.scene[light.target].position.y,
+                  self.scene[light.target].position.z,
+                ),
+              ),
+            });
           }
         }
       }
-    })
+    });
   }
 }

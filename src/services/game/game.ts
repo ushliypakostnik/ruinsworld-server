@@ -6,7 +6,9 @@ import { Injectable } from '@nestjs/common';
 // Types
 import type { ISelf } from '../../models/modules';
 import type {
+  IMessage,
   IUpdateMessage,
+  IPickMessage,
   IShot,
   IOnExplosion,
   IExplosion,
@@ -15,6 +17,7 @@ import type {
   ILocationUnits,
   IUnitsByLocations,
   IMapUnit,
+  IPointMessage,
 } from '../../models/api';
 
 // Constants
@@ -27,6 +30,7 @@ import World from './world/world';
 import Users from './units/users';
 import Weapon from './weapon/weapon';
 import NPC from './units/npc';
+import Points from './units/points';
 
 @Injectable()
 export default class Game {
@@ -34,6 +38,7 @@ export default class Game {
   public users: Users;
   public weapon: Weapon;
   public npc: NPC;
+  public points: Points;
 
   private _events: Events;
   private _self: ISelf;
@@ -46,6 +51,7 @@ export default class Game {
   private _p1!: THREE.Vector3;
   private _p2!: THREE.Vector3;
   private _number!: number;
+  private _race!: Races;
 
   private _timeLazyChecks = 0;
   private _isRight = false;
@@ -68,8 +74,18 @@ export default class Game {
     this.users = new Users();
     this.weapon = new Weapon();
     this.npc = new NPC();
+    this.points = new Points();
 
     this.world.init(this._self);
+    this.points.init(
+      this.world.array.map((location: ILocationUnits) => {
+        return {
+          id: location.id,
+          isHuman: location.x === -3 && location.y === -3,
+          isReptiloid: location.x === 3 && location.y === 3,
+        };
+      }),
+    );
 
     this._self.unitsByLocations = this._getUnitsByLocations();
 
@@ -107,6 +123,7 @@ export default class Game {
   // Актуальные обновления игрового мира
   public getGameUpdates(location: string): IGameUpdates {
     return {
+      point: this.points.obj[location],
       users: this.users.list.filter((user) =>
         this.world.locations[location].users.includes(user.id),
       ),
@@ -132,9 +149,7 @@ export default class Game {
       this._units[location.id] = this.users.listInfo
         .filter((unit) => this._ids.includes(unit.id))
         .concat(
-          this.npc.listInfo.filter((unit) =>
-            this._ids.includes(unit.id),
-          ),
+          this.npc.listInfo.filter((unit) => this._ids.includes(unit.id)),
         );
     });
     // console.log('Game _getUnitsByLocations: ', this._units);
@@ -148,8 +163,15 @@ export default class Game {
         this.world.locations[id].npc,
       );
       // console.log('Game _getUnitsByLocations: ', this._units);
-      return this.npc.getList().filter((npc) => this._ids.includes(npc.id) && npc.lifecycle !== Lifecycle.born)
-        .concat(this.users.getList().filter((user) => this._ids.includes(user.id)))
+      return this.npc
+        .getList()
+        .filter(
+          (npc) =>
+            this._ids.includes(npc.id) && npc.lifecycle !== Lifecycle.born,
+        )
+        .concat(
+          this.users.getList().filter((user) => this._ids.includes(user.id)),
+        )
         .map((unit) => {
           return {
             id: unit.id,
@@ -157,7 +179,7 @@ export default class Game {
             x: unit.positionX / Number(process.env.SIZE),
             y: unit.positionZ / Number(process.env.SIZE),
             isDead: unit.lifecycle === Lifecycle.dead,
-          }
+          };
         });
     }
   }
@@ -165,8 +187,7 @@ export default class Game {
   // Знакомый игрок
   public updatePlayer(id: string): IUpdateMessage {
     this._user = this.users.updatePlayer(id);
-
-    console.log('updatePlayer: ', this._user);
+    // console.log('updatePlayer: ', this._user);
 
     this._id = this.world.updatePlayer(id);
     return {
@@ -189,23 +210,41 @@ export default class Game {
   // Взять айди стартовой локации по расе
   private _getStartLocationIdByRace(race: string): string {
     // console.log('Game _getStartLocationIdByRace: ', race);
-    if (Number(process.env.WORLD) === 0) return this.world.getLocationIdByCoords(0, 0);
+    if (Number(process.env.WORLD) === 0)
+      return this.world.getLocationIdByCoords(0, 0);
     else if (race === Races.reptiloid)
-      return this.world.getLocationIdByCoords(Number(process.env.START_X_REPTILOIDS), Number(process.env.START_Y_REPTILOIDS));
-    return this.world.getLocationIdByCoords(Number(process.env.START_X_HUMANS), Number(process.env.START_Y_HUMANS));
-  } 
+      return this.world.getLocationIdByCoords(
+        Number(process.env.START_X_REPTILOIDS),
+        Number(process.env.START_Y_REPTILOIDS),
+      );
+    return this.world.getLocationIdByCoords(
+      Number(process.env.START_X_HUMANS),
+      Number(process.env.START_Y_HUMANS),
+    );
+  }
 
   // Заход игрока
   public onEnter(message: IUpdateMessage): IUpdateMessage {
+    // console.log('Game onEnter: ', message);
     // Добавляем игрока
     this._user = this.users.setNewPlayer(this._self, message);
 
-    // Выставляем на стартовую локацию и проверяем юниты
-    this._id = this._getStartLocationIdByRace(message.race as string);
+    // Выставляем стартовую локацию:
+    // Либо последнюю на которой был клиент, если на ней установлен правильный флаг игровой расы
+    // Или - с локаций на которых нельзя сменить флаг
+    if (
+      message.location &&
+      this.points.obj[message.location as string] &&
+      this.points.obj[message.location as string].status === message.race
+    ) {
+      this._id = message.location as string;
+    } else this._id = this._getStartLocationIdByRace(message.race as string);
+
+    // И проверяем юниты
     this.world.setNewPlayer(this._self, this._user.id as string, this._id);
 
     this._afterEnterToggle();
-    console.log('Game onEnter setNewPlayer: ', this._user);
+    // console.log('Game onEnter setNewPlayer: ', this._user);
 
     return {
       location: this._id,
@@ -283,17 +322,37 @@ export default class Game {
     return this.users.onSelfharm(message);
   }
 
+  // На смену флага на локации
+  public onPoint(message: IPointMessage): void {
+    return this.points.onPoint(message);
+  }
+
+  // Игрок подобрал что-то
+  public onPick(message: IPickMessage): number {
+    switch (message.type) {
+      case 'dead':
+        this._number = this.users.onPickDead(message);
+        this.npc.onPickDead(this._self, message.id);
+        break;
+    }
+    return this._number;
+  }
+
+  // Игрок умер
+  public onUserDead(message: IMessage): void {
+    this.users.onUserDead(message.id);
+    this._self.unitsByLocations = this._getUnitsByLocations();
+  }
+
   // Ленивая проверка неписей
   private _lazyChecks(): void {
     // console.log('Game _lazyChecks!!!');
+    this.npc.lazyCheck(); // Убиваем слишком старых (для баланса среди неписей)
+
     this._number = 0;
     this.npc.getList().forEach((npc) => {
       this._id = this.world.getLocationIdByNPCId(npc.id);
-      this._p1 = new THREE.Vector3(
-        npc.positionX,
-        npc.positionY,
-        npc.positionZ,
-      );
+      this._p1 = new THREE.Vector3(npc.positionX, npc.positionY, npc.positionZ);
       this._p2 = new THREE.Vector3(0, 0, 0);
 
       // console.log(npc.positionX, npc.positionZ, this._p1.distanceTo(this._p2));
@@ -303,16 +362,18 @@ export default class Game {
         ++this._number;
         this._isRight = npc.positionX >= 0;
         this._isBottom = npc.positionZ >= 0;
-        if (
-          Math.abs(npc.positionX) >= Math.abs(npc.positionZ)
-        ) {
+        if (Math.abs(npc.positionX) >= Math.abs(npc.positionZ)) {
           if (this._isRight) this._result = 'right';
           else this._result = 'left';
         } else {
           if (this._isBottom) this._result = 'bottom';
           else this._result = 'top';
         }
-        this._onNPCRelocation({ id: npc.id, direction: this._result, location: this._id });
+        this._onNPCRelocation({
+          id: npc.id,
+          direction: this._result,
+          location: this._id,
+        });
       }
     });
     if (this._number > 0) this._checkUnits();

@@ -21,6 +21,7 @@ export default class Api {
           id: location.id,
           x: location.x,
           y: location.y,
+          status: this._gateway.game.points.obj[location.id].status,
         };
       }),
       units: this._gateway.game.getUnitsByLocationsId(params.id),
@@ -32,18 +33,17 @@ export default class Api {
   public getStats(): {
     users: number;
     npc: number;
-    dead: { [key: string]: number };
+    live: { [key: string]: number };
     shots: number;
     nowShots: number;
     lights: number;
     nowLights: number;
     storeUsers: IUserBack[]
   } {
-    // console.log('Controller Get getStats!!!');
     return {
       users: this._gateway.game.users.counter,
       npc: this._gateway.game.npc.counter,
-      dead: this._gateway.game.npc.counters,
+      live: this._gateway.game.npc.counters,
       shots: this._gateway.game.weapon.shots.counter,
       nowShots: this._gateway.game.weapon.shots.list.length,
       lights: this._gateway.game.weapon.lights.counter,

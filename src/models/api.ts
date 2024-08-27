@@ -1,4 +1,4 @@
-import type { Lifecycle, Races } from './gameplay';
+import type { Lifecycle, Races, Pick } from './gameplay';
 
 // Websockets messages
 export enum Messages {
@@ -26,6 +26,10 @@ export enum Messages {
   relocation = 'relocation', // Переход на другую локацию
   onRelocation = 'onRelocation', // На переход на другую локацию
   location = 'location', // Игрок загрузился на локации
+  point = 'point', // Смена флага на контрольной точке
+  pick = 'pick', // Пользователь подобрал что-то
+  onPick = 'onPick', // На подбирание что-то
+  userDead = 'userDead', // Игрок умер
 }
 
 // Движущийся объект
@@ -88,13 +92,18 @@ export interface IUnit extends IMoveObject {
   isOnHit: boolean;
   isOnHit2: boolean;
   isSleep: boolean;
+  exp: number,
 }
 
 // Для бека
-// Провел в игре: time - unix) / 60
-export interface IUserBack {
+
+export interface IUnitBack {
   id: string;
   start: number | null;
+}
+
+// Провел в игре: time - unix) / 60
+export interface IUserBack extends IUnitBack {
   time: number | null;
 }
 
@@ -105,34 +114,47 @@ export interface IUpdateMessage {
 
 // Обновления игры
 
+export interface IMessage {
+  id: string;
+  location: string;
+}
+
+export interface IPickMessage extends IMessage {
+  type: Pick;
+  uuid: string;
+  text: string;
+  user: string;
+}
+
 export interface IWeaponModule {
   [key: string]: IShot[] | ILight[];
 }
 
 export interface IGameUpdates {
+  point: IPoint;
   users: IUnit[];
   npc: IUnit[],
   weapon: IWeaponModule;
 }
 
 // Мир
+export interface IPoint {
+  status: Races.human | Races.reptiloid | null;
+}
+
 export interface IPosition {
   x: number;
   z: number;
 }
 
-export interface ITree {
-  x: number;
-  z: number;
+export interface ITree extends IPosition {
   scale: number;
   rotateX: number;
   rotateY: number;
   rotateZ: number;
 }
 
-export interface IStone {
-  x: number;
-  z: number;
+export interface IStone extends IPosition {
   scaleX: number;
   scaleY: number;
   scaleZ: number;
@@ -143,9 +165,7 @@ export interface IStone2 extends IStone {
   model: number;
 }
 
-export interface IBuild {
-  x: number;
-  z: number;
+export interface IBuild extends IPosition {
   scale: number;
   scaleY: number;
   rotateX: number;
@@ -175,7 +195,7 @@ export interface ILocationWorld extends ILocation {
   ground: string;
   trees: ITree[];
   stones: IStone[];
-  stones2: IStone[];
+  // stones2: IStone[];
   builds: IBuild[];
 }
 
@@ -185,6 +205,10 @@ export interface ILocations {
 
 export interface ILocationsWorld {
   [key: string]: ILocationWorld;
+}
+
+export interface IPoints {
+  [key: string]: IPoint;
 }
 
 export interface IUserUpdate {
@@ -209,4 +233,9 @@ export interface IMapUnit {
   x: number;
   y: number;
   isDead: boolean;
+}
+
+export interface IPointMessage {
+  id: string;
+  race: Races.human | Races.reptiloid;
 }

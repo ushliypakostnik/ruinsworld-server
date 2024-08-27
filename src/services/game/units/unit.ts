@@ -9,6 +9,7 @@ import { Lifecycle, Races } from 'src/models/gameplay';
 export default class User implements IUnit {
   public name!: string;
   public race: Races;
+  public exp: number;
   public health: number;
   public positionX: number;
   public positionY: number;
@@ -29,6 +30,7 @@ export default class User implements IUnit {
   constructor(
     readonly id: string
   ) {
+    this.exp = 0;
     this.health = 100;
     this.lifecycle = Lifecycle.born;
   }

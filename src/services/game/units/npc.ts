@@ -7,13 +7,12 @@ import type {
   IUnitColliders,
   IUnitCollider,
 } from '../../../models/modules';
-import type {
-  TResult,
-  TRayResult,
-} from '../../../models/utils';
+import type { TResult, TRayResult } from '../../../models/utils';
 import type {
   IUnit,
+  IMessage,
   IUnitInfo,
+  IUnitBack,
   IExplosion,
   IUpdateMessage,
 } from '../../../models/api';
@@ -34,20 +33,22 @@ import Unit from './unit';
 export default class NPC {
   public list: IUnit[];
   public listInfo: IUnitInfo[];
+  public listBack: IUnitBack[];
   public colliders: IUnitColliders;
   public counter = 0;
   public counters = {
-    [Races.bidens]: 0,    
-    [Races.mutant]: 0,    
-    [Races.orc]: 0,    
-    [Races.zombie]: 0,    
-    [Races.soldier]: 0,    
-    [Races.cyborg]: 0,    
+    [Races.bidens]: 0,
+    [Races.mutant]: 0,
+    [Races.orc]: 0,
+    [Races.zombie]: 0,
+    [Races.soldier]: 0,
+    [Races.cyborg]: 0,
   };
 
   private _collider: IUnitCollider;
   private _item!: IUnit;
   private _itemInfo!: IUnitInfo;
+  private _itemBack!: IUnitBack;
   private _id: string;
   private _listInfo2!: IUnitInfo[];
   private _listInfo3!: IUnitInfo[];
@@ -72,7 +73,7 @@ export default class NPC {
   private _v2!: THREE.Vector3;
   private _timerStartCreate = 0;
   private _timerLazyCheck = 0;
-  private _box!: { x: number, y: number, z: number };
+  private _box!: { x: number; y: number; z: number };
   private _angle!: number;
   private _ray!: THREE.Ray;
   private _helper!: Helper;
@@ -95,7 +96,8 @@ export default class NPC {
     isFire: false,
     isOnHit: false,
     isOnHit2: false,
-  }
+    exp: 0,
+  };
 
   private _RACES = [
     Races.bidens,
@@ -109,6 +111,7 @@ export default class NPC {
   constructor() {
     this.list = [];
     this.listInfo = [];
+    this.listBack = [];
     this.colliders = {};
     this._v = new THREE.Vector3();
     this._direction = new THREE.Vector3();
@@ -117,6 +120,10 @@ export default class NPC {
 
   private _getNPCById(id: string): IUnit {
     return this.list.find((unit) => unit.id === id);
+  }
+
+  private _getNPCBackById(id: string): IUnitBack {
+    return this.listBack.find((unit) => unit.id === id);
   }
 
   public getList(): IUnit[] {
@@ -177,8 +184,23 @@ export default class NPC {
     else this._id = `NPC1/${this.counter}`;
     this._item = new Unit(this._id);
 
+    // Добавляем непись расы которой меньше всего
+    this._number = 0;
     this._string = this._RACES[Helper.randomInteger(0, this._RACES.length - 1)];
-    // this._string = 'mutant';
+    this._RACES.forEach(
+      (race) =>
+        (this.counters[race] = this.listInfo.filter(
+          (unit) => unit.race === race,
+        ).length),
+    );
+    this._RACES.forEach((race) => {
+      if (this.counters[race] < this._number) {
+        this._string = race;
+        this._number = this.counters[race];
+      }
+    });
+    this.counters[this._string] += 1;
+    // console.log('NPC addUnit: ', this._string);
     this._item = {
       ...this._item,
       ...this._START,
@@ -189,9 +211,18 @@ export default class NPC {
     this._item.positionY = 30;
 
     this.list.push(this._item);
+    this._number = Helper.getUnixtime();
+    this.listBack.push({
+      id: this._item.id,
+      start: this._number,
+    });
 
     if (id) {
-      self.scene[id].position.set(this._item.positionX, this._item.positionY, this._item.positionZ);
+      self.scene[id].position.set(
+        this._item.positionX,
+        this._item.positionY,
+        this._item.positionZ,
+      );
       this.listInfo.push({
         id: this._id,
         mesh: this._mesh.uuid,
@@ -205,7 +236,11 @@ export default class NPC {
         new THREE.BoxGeometry(this._box.x, this._box.y, this._box.z),
         new THREE.MeshBasicMaterial(),
       );
-      this._mesh.position.set(this._item.positionX, this._item.positionY, this._item.positionZ);
+      this._mesh.position.set(
+        this._item.positionX,
+        this._item.positionY,
+        this._item.positionZ,
+      );
       this.listInfo.push({
         id: this._id,
         mesh: this._mesh.uuid,
@@ -256,7 +291,7 @@ export default class NPC {
       isHit: false,
       nextLifecycle: null,
     };
-    
+
     // addNPC event emit
     self.emiiter.emit(EmitterEvents.addNPC, this._item);
   }
@@ -266,7 +301,8 @@ export default class NPC {
     // console.log('NPC sleep!: ', message);
     this.list
       .filter((unit) => unit.lifecycle !== Lifecycle.born)
-      .filter((unit) => ids.includes(unit.id)).forEach((unit) => unit.isSleep = is);
+      .filter((unit) => ids.includes(unit.id))
+      .forEach((unit) => (unit.isSleep = is));
   }
 
   // Столкновения
@@ -310,63 +346,104 @@ export default class NPC {
 
   // Юниты которым нужно построить октомодель в этом кадре
   private _isNeedOctreeUnit(unit: IUnit) {
-    if (unit.animation === 'idle' || unit.lifecycle === Lifecycle.dead) return false;
+    if (unit.animation === 'idle' || unit.lifecycle === Lifecycle.dead)
+      return false;
     return true;
   }
 
   // Видит ли юнит цель?
-  private _isUnitSeeTarget(self: ISelf, unit: IUnit, target: THREE.Vector3, locationId: string, height: number) {
+  private _isUnitSeeTarget(
+    self: ISelf,
+    unit: IUnit,
+    target: THREE.Vector3,
+    locationId: string,
+    height: number,
+  ) {
     this._v2 = new THREE.Vector3(
       self.scene[unit.id].position.x,
       self.scene[unit.id].position.y + height / 2,
       self.scene[unit.id].position.z,
     );
-    this._v1 = new THREE.Vector3(0, 0, 0).subVectors(target, this._v2).normalize();
+    this._v1 = new THREE.Vector3(0, 0, 0)
+      .subVectors(target, this._v2)
+      .normalize();
     this._v1.y = 0;
     this._ray = new THREE.Ray(this._v2, this._v1);
     this._result3 = self.octrees[locationId].rayIntersect(this._ray);
 
     self.scene[unit.id].getWorldDirection(this._direction);
     this._direction.y = 0;
-    this._angle = this._v1.angleTo(this._direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2));
+    this._angle = this._v1.angleTo(
+      this._direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2),
+    );
 
     // console.log('NPC _isUnitSeeTarget', this._v2.distanceTo(target), Helper.radiansToDegrees(this._angle));
     // console.log('NPC _isUnitSeeTarget', unit.id, target, this._result3 && this._result3.distance, this._v2.distanceTo(target));
 
     // "Спиной" видит во время атаки
-    if (unit.lifecycle === Lifecycle.attention || unit.lifecycle === Lifecycle.idle) {
-      if ((this._result3 && this._result3.distance < this._v2.distanceTo(target)) ||
-        Helper.radiansToDegrees(this._angle) < (90 - (45 * RacesConfig[unit.race].intelligence)) ||
-        Helper.radiansToDegrees(this._angle) > (90 + (45 * RacesConfig[unit.race].intelligence))) return false;
+    if (
+      unit.lifecycle === Lifecycle.attention ||
+      unit.lifecycle === Lifecycle.idle
+    ) {
+      if (
+        (this._result3 &&
+          this._result3.distance < this._v2.distanceTo(target)) ||
+        Helper.radiansToDegrees(this._angle) <
+          90 - 45 * RacesConfig[unit.race].intelligence ||
+        Helper.radiansToDegrees(this._angle) >
+          90 + 45 * RacesConfig[unit.race].intelligence
+      )
+        return false;
       return true;
     }
 
-    if (this._result3 && this._result3.distance < this._v2.distanceTo(target)) return false;
+    if (this._result3 && this._result3.distance < this._v2.distanceTo(target))
+      return false;
     return true;
   }
 
   // Проверка отношений
-  private _checkUnit(self: ISelf, unit: IUnit, collider: IUnitCollider, height: number) {
+  private _checkUnit(
+    self: ISelf,
+    unit: IUnit,
+    collider: IUnitCollider,
+    height: number,
+  ) {
     // console.log('NPC _checkUnit: ', unit);
 
-    this._listInfo2 = self.unitsByLocations[self.units[unit.id]]
-      .filter(
-        (item) =>
-          item.animation !== 'dead' &&
-          item.id !== unit.id &&
-          RacesConfig[unit.race].enemy.includes(item.race) &&
-          this._isUnitSeeTarget(self, unit, self.scene[item.id].position, self.units[unit.id], height) &&
-          self.scene[item.id].position.distanceTo(self.scene[unit.id].position) < (Number(process.env.ATTENTION_DISTANCE) / (item.animation.includes('hide') ?  2 : 1)),
-      );
+    this._listInfo2 = self.unitsByLocations[self.units[unit.id]].filter(
+      (item) =>
+        item.animation !== 'dead' &&
+        item.id !== unit.id &&
+        RacesConfig[unit.race].enemy.includes(item.race) &&
+        this._isUnitSeeTarget(
+          self,
+          unit,
+          self.scene[item.id].position,
+          self.units[unit.id],
+          height,
+        ) &&
+        self.scene[item.id].position.distanceTo(self.scene[unit.id].position) <
+          Number(process.env.ATTENTION_DISTANCE) /
+            (item.animation.includes('hide') ? 2 : 1),
+    );
 
     if (!this._listInfo2.length) {
       collider.target = '';
       collider.nextLifecycle = Lifecycle.idle;
     } else {
       // Смотрим есть ли атакующие именно этого или враждебные игроки на дистанции атаки
-      this._listInfo3 = this._listInfo2.filter((item) => (this.colliders[item.id] && this.colliders[item.id].target === unit.id) ||
-        (RacesConfig[unit.race].playerEnemy.includes(item.race) &&
-          self.scene[item.id].position.distanceTo(self.scene[unit.id].position) < (Number(process.env.ATTACK_DISTANCE) / (item.animation.includes('hide') ?  2 : 1))));
+      this._listInfo3 = this._listInfo2.filter(
+        (item) =>
+          (this.colliders[item.id] &&
+            this.colliders[item.id].target === unit.id) ||
+          (RacesConfig[unit.race].playerEnemy.includes(item.race) &&
+            self.scene[item.id].position.distanceTo(
+              self.scene[unit.id].position,
+            ) <
+              Number(process.env.ATTACK_DISTANCE) /
+                (item.animation.includes('hide') ? 2 : 1)),
+      );
       if (this._listInfo3.length) {
         this._listInfo3 = this._listInfo3.sort(
           (a, b) =>
@@ -377,30 +454,50 @@ export default class NPC {
         collider.nextLifecycle = Lifecycle.attack;
       } else {
         // Смотрим есть ли особенно враждебные на дистанции атаки
-        this._listInfo3 = this._listInfo2
-          .filter((item) => RacesConfig[unit.race].important.includes(item.race) &&
-            self.scene[item.id].position.distanceTo(self.scene[unit.id].position) < (Number(process.env.ATTACK_DISTANCE) / (item.animation.includes('hide') ?  2 : 1)));
+        this._listInfo3 = this._listInfo2.filter(
+          (item) =>
+            RacesConfig[unit.race].important.includes(item.race) &&
+            self.scene[item.id].position.distanceTo(
+              self.scene[unit.id].position,
+            ) <
+              Number(process.env.ATTACK_DISTANCE) /
+                (item.animation.includes('hide') ? 2 : 1),
+        );
         if (this._listInfo3.length) {
           if (this._listInfo3.length > 1) {
             this._listInfo3 = this._listInfo3.sort(
               (a, b) =>
-                self.scene[a.id].position.distanceTo(self.scene[unit.id].position) -
-                self.scene[b.id].position.distanceTo(self.scene[unit.id].position),
+                self.scene[a.id].position.distanceTo(
+                  self.scene[unit.id].position,
+                ) -
+                self.scene[b.id].position.distanceTo(
+                  self.scene[unit.id].position,
+                ),
             );
           }
           collider.target = this._listInfo3[0].id; // Выбрали цель
           collider.nextLifecycle = Lifecycle.attack;
         } else {
           // Смотрим есть ли враждебные на дистанции атаки
-          this._listInfo3 = this._listInfo2
-            .filter((item) => RacesConfig[unit.race].enemy.includes(item.race) &&
-              self.scene[item.id].position.distanceTo(self.scene[unit.id].position) < (Number(process.env.ATTACK_DISTANCE) / (item.animation.includes('hide') ?  2 : 1)));
+          this._listInfo3 = this._listInfo2.filter(
+            (item) =>
+              RacesConfig[unit.race].enemy.includes(item.race) &&
+              self.scene[item.id].position.distanceTo(
+                self.scene[unit.id].position,
+              ) <
+                Number(process.env.ATTACK_DISTANCE) /
+                  (item.animation.includes('hide') ? 2 : 1),
+          );
           if (this._listInfo3.length) {
             if (this._listInfo3.length > 1) {
               this._listInfo3 = this._listInfo3.sort(
                 (a, b) =>
-                  self.scene[a.id].position.distanceTo(self.scene[unit.id].position) -
-                  self.scene[b.id].position.distanceTo(self.scene[unit.id].position),
+                  self.scene[a.id].position.distanceTo(
+                    self.scene[unit.id].position,
+                  ) -
+                  self.scene[b.id].position.distanceTo(
+                    self.scene[unit.id].position,
+                  ),
               );
             }
             collider.target = this._listInfo3[0].id; // Выбрали цель
@@ -409,16 +506,26 @@ export default class NPC {
             if (this._listInfo2.length > 1) {
               this._listInfo2 = this._listInfo2.sort(
                 (a, b) =>
-                  self.scene[a.id].position.distanceTo(self.scene[unit.id].position) -
-                  self.scene[b.id].position.distanceTo(self.scene[unit.id].position),
+                  self.scene[a.id].position.distanceTo(
+                    self.scene[unit.id].position,
+                  ) -
+                  self.scene[b.id].position.distanceTo(
+                    self.scene[unit.id].position,
+                  ),
               );
             }
             collider.target = this._listInfo2[0].id; // Выбрали цель
 
-            if (self.scene[collider.target].position.distanceTo(self.scene[unit.id].position) < (Number(process.env.ATTACK_DISTANCE) / (this._listInfo2[0].animation.includes('hide') ?  2 : 1))) {
+            if (
+              self.scene[collider.target].position.distanceTo(
+                self.scene[unit.id].position,
+              ) <
+              Number(process.env.ATTACK_DISTANCE) /
+                (this._listInfo2[0].animation.includes('hide') ? 2 : 1)
+            ) {
               collider.nextLifecycle = Lifecycle.attack;
             } else {
-              collider.nextLifecycle = Lifecycle.attention; 
+              collider.nextLifecycle = Lifecycle.attention;
             }
           }
         }
@@ -449,13 +556,13 @@ export default class NPC {
   // Установить счетчик "не поворачиваю"
   private _setNoBendTimer(collider: IUnitCollider) {
     collider.bendTimer = 0.00000001;
-    collider.bendTimerLimit = Math.random() + 1; 
+    collider.bendTimerLimit = Math.random() + 1;
   }
 
   // Установить счетчик "отдыха после действия"
   private _setNoActionTimer(collider: IUnitCollider, time: number) {
     collider.timerNo = 0.00000001;
-    collider.timerNoLimit = time + Math.random() * 2; 
+    collider.timerNoLimit = time + Math.random() * 2;
   }
 
   // Начало действия
@@ -475,11 +582,14 @@ export default class NPC {
     self.scene[unit.id].getWorldDirection(this._direction);
     this._direction.normalize();
     this._direction.y = 0;
-    this._ray = new THREE.Ray(new THREE.Vector3(
-      self.scene[unit.id].position.x,
-      self.scene[unit.id].position.y + this._box.y * 8/9,
-      self.scene[unit.id].position.z,
-    ), this._direction);
+    this._ray = new THREE.Ray(
+      new THREE.Vector3(
+        self.scene[unit.id].position.x,
+        self.scene[unit.id].position.y + (this._box.y * 8) / 9,
+        self.scene[unit.id].position.z,
+      ),
+      this._direction,
+    );
     this._result3 = self.octrees[self.units[unit.id]].rayIntersect(this._ray);
 
     if (!this._result3 || this._result3.distance > 5) {
@@ -568,7 +678,12 @@ export default class NPC {
   }
 
   // Выбрать новое действие
-  private _choizeNewAction(self: ISelf, unit: IUnit, collider: IUnitCollider, choize: number) {
+  private _choizeNewAction(
+    self: ISelf,
+    unit: IUnit,
+    collider: IUnitCollider,
+    choize: number,
+  ) {
     // console.log('NPC _choizeNewAction!!! ', choize);
     if (unit.lifecycle !== collider.nextLifecycle) {
       unit.lifecycle = collider.nextLifecycle;
@@ -593,21 +708,50 @@ export default class NPC {
         break;
       case Lifecycle.attention:
       case Lifecycle.idle:
-        if (choize === 1 && !collider.isForward) this._setWalking(self, unit, collider);
-        else if (choize === 2 && collider.isForward) this._setNoWalking(collider);
-        else if (choize === 3 && unit.lifecycle !== Lifecycle.attention && !collider.isJump && collider.isNotJump && collider.isForward) this._setJump(collider);
+        if (choize === 1 && !collider.isForward)
+          this._setWalking(self, unit, collider);
+        else if (choize === 2 && collider.isForward)
+          this._setNoWalking(collider);
+        else if (
+          choize === 3 &&
+          unit.lifecycle !== Lifecycle.attention &&
+          !collider.isJump &&
+          collider.isNotJump &&
+          collider.isForward
+        )
+          this._setJump(collider);
         break;
     }
   }
 
   // Получить дистанцию атаки
   private _getAttackDistance(self: ISelf, unitRace: Races, targetId: string) {
-    this._itemInfo = self.unitsByLocations[self.units[targetId]].find((item) => item.id === targetId);
-    return Math.sqrt(Math.pow(RacesConfig[unitRace].box.x, 2) + Math.pow(RacesConfig[unitRace].box.z, 2)) + Math.sqrt(Math.pow(RacesConfig[this._itemInfo.race].box.x, 2) + Math.pow(RacesConfig[this._itemInfo.race].box.z, 2)) / 1.5;
+    this._itemInfo = self.unitsByLocations[self.units[targetId]].find(
+      (item) => item.id === targetId,
+    );
+    if (this._itemInfo) {
+      return (
+        Math.sqrt(
+          Math.pow(RacesConfig[unitRace].box.x, 2) +
+            Math.pow(RacesConfig[unitRace].box.z, 2),
+        ) +
+        Math.sqrt(
+          Math.pow(RacesConfig[this._itemInfo.race].box.x, 2) +
+            Math.pow(RacesConfig[this._itemInfo.race].box.z, 2),
+        ) /
+          1.5
+      );
+    }
+    return 3;
   }
 
   // Обработать поворот
-  private _updateRotate(self: ISelf, unit: IUnit, collider: IUnitCollider, choize: number) {
+  private _updateRotate(
+    self: ISelf,
+    unit: IUnit,
+    collider: IUnitCollider,
+    choize: number,
+  ) {
     switch (unit.lifecycle) {
       case Lifecycle.attack:
       case Lifecycle.attention:
@@ -615,15 +759,34 @@ export default class NPC {
         if (self.scene[collider.target]) {
           self.scene[unit.id].getWorldDirection(this._direction);
           this._direction.y = 0;
-          this._v1 = new THREE.Vector3(0, 0, 0).subVectors(self.scene[collider.target].position, self.scene[unit.id].position).normalize();
+          this._v1 = new THREE.Vector3(0, 0, 0)
+            .subVectors(
+              self.scene[collider.target].position,
+              self.scene[unit.id].position,
+            )
+            .normalize();
           this._v1.y = 0;
-          this._angle = this._v1.angleTo(this._direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2));
+          this._angle = this._v1.angleTo(
+            this._direction.applyAxisAngle(
+              new THREE.Vector3(0, 1, 0),
+              Math.PI / 2,
+            ),
+          );
           // Поворот на цель
-          if (Helper.radiansToDegrees(this._angle) > 91 || Helper.radiansToDegrees(this._angle) < 89) {
-            self.scene[unit.id].rotateY((this._angle - Math.PI / 2 <= 0 ? 1 : -1) * self.events.delta * 2);
-  
+          if (
+            Helper.radiansToDegrees(this._angle) > 91 ||
+            Helper.radiansToDegrees(this._angle) < 89
+          ) {
+            self.scene[unit.id].rotateY(
+              (this._angle - Math.PI / 2 <= 0 ? 1 : -1) * self.events.delta * 2,
+            );
+
             // Если маленкое растояние для цели - останавливваем
-            if (self.scene[collider.target].position.distanceTo(self.scene[unit.id].position) < this._getAttackDistance(self, unit.race, collider.target)) {
+            if (
+              self.scene[collider.target].position.distanceTo(
+                self.scene[unit.id].position,
+              ) < this._getAttackDistance(self, unit.race, collider.target)
+            ) {
               collider.velocity.x = 0;
               collider.velocity.z = 0;
             }
@@ -643,10 +806,14 @@ export default class NPC {
                 );
                 this._v1.y = 0;
                 this._v2.y = 0;
-                if (!collider.isKick &&
-                    !collider.isBackward &&
-                    collider.target.length &&
-                    this._v1.distanceTo(this._v2) < this._getAttackDistance(self, unit.race, collider.target) * 1.1) {
+                if (
+                  !collider.isKick &&
+                  !collider.isBackward &&
+                  collider.target.length &&
+                  this._v1.distanceTo(this._v2) <
+                    this._getAttackDistance(self, unit.race, collider.target) *
+                      1.1
+                ) {
                   // console.log('Хочу пнуть!!!', collider.target, self.scene[collider.target].position.distanceTo(self.scene[unit.id].position));
                   this._setKick(collider);
                 }
@@ -714,19 +881,33 @@ export default class NPC {
 
   // Обновить выстрел
   private _updateAttack(self: ISelf, unit: IUnit, collider: IUnitCollider) {
-    if (self.scene[collider.target] &&
+    if (
+      self.scene[collider.target] &&
       collider.timer > RacesConfig[unit.race].attackTime &&
-      !collider.isAttack2) {
+      !collider.isAttack2
+    ) {
       this._v1 = new THREE.Vector3(
         self.scene[collider.target].position.x,
         self.scene[collider.target].position.y,
         self.scene[collider.target].position.z,
       );
-      if (self.scene[collider.target]) self.emiiter.emit(EmitterEvents.npcShot, { unit, target: collider.target });
+      if (self.scene[collider.target])
+        self.emiiter.emit(EmitterEvents.npcShot, {
+          unit,
+          target: collider.target,
+        });
       setTimeout(() => {
-        if (self.scene[collider.target]) self.emiiter.emit(EmitterEvents.npcShot, { unit, target: collider.target });
+        if (self.scene[collider.target])
+          self.emiiter.emit(EmitterEvents.npcShot, {
+            unit,
+            target: collider.target,
+          });
         setTimeout(() => {
-          if (self.scene[collider.target]) self.emiiter.emit(EmitterEvents.npcShot, { unit, target: collider.target });
+          if (self.scene[collider.target])
+            self.emiiter.emit(EmitterEvents.npcShot, {
+              unit,
+              target: collider.target,
+            });
         }, 500);
       }, 500);
       collider.isAttack2 = true;
@@ -742,7 +923,13 @@ export default class NPC {
   // Обновить пинок
   private _updateKick(self: ISelf, unit: IUnit, collider: IUnitCollider) {
     // console.log('NPC _updateKick!!!');
-    if (collider.timer > RacesConfig[unit.race].animations.kick * RacesConfig[unit.race].kickTime && self.scene[collider.target] && !collider.isKick2) {
+    if (
+      collider.timer >
+        RacesConfig[unit.race].animations.kick *
+          RacesConfig[unit.race].kickTime &&
+      self.scene[collider.target] &&
+      !collider.isKick2
+    ) {
       collider.isKick2 = true;
       // Есть урон?
       this._v1 = new THREE.Vector3(
@@ -757,28 +944,54 @@ export default class NPC {
       );
       this._v1.y = 0;
       this._v2.y = 0;
-      if (this._v1.distanceTo(this._v2) < this._getAttackDistance(self, unit.race, collider.target) * 1.25) {
+      if (
+        this._v1.distanceTo(this._v2) <
+        this._getAttackDistance(self, unit.race, collider.target) * 1.25
+      ) {
         if (collider.target.includes('NPC')) {
           // Урон неписи
           this._item = this._getNPCById(collider.target);
           this._item.isOnHit = true;
-          this._itemInfo = this.listInfo.find((npc) => npc.id === collider.target);
-          this._item.health -= this._helper.getDamage('kick', unit.race, this._itemInfo.race, null, false, false);
+          this._itemInfo = this.listInfo.find(
+            (npc) => npc.id === collider.target,
+          );
+          this._item.health -= this._helper.getDamage(
+            'kick',
+            unit.race,
+            this._itemInfo.race,
+            null,
+            false,
+            false,
+          );
         } else {
           // Урон игроку
           self.emiiter.emit(EmitterEvents.playerKick, {
             id: collider.target,
-            value: this._helper.getDamage('kick', unit.race, null, null, false, false),
+            value: this._helper.getDamage(
+              'kick',
+              unit.race,
+              null,
+              null,
+              false,
+              false,
+            ),
           });
         }
       }
     }
-    if (collider.timer > RacesConfig[unit.race].animations.kick * 0.6 && !collider.isBackward) {
+    if (
+      collider.timer > RacesConfig[unit.race].animations.kick * 0.6 &&
+      !collider.isBackward
+    ) {
       // console.log('Откатываюсь!!!');
       collider.isBackward = true;
-      collider.backwardTimer = (Math.random() + 0.4);
+      collider.backwardTimer = Math.random() + 0.4;
     }
-    if ((collider.timer > RacesConfig[unit.race].animations.kick * 0.8 + collider.backwardTimer) && collider.isBackward) {
+    if (
+      collider.timer >
+        RacesConfig[unit.race].animations.kick * 0.8 + collider.backwardTimer &&
+      collider.isBackward
+    ) {
       // console.log('Перестал!!!');
       collider.isKick = false;
       collider.isKick2 = false;
@@ -814,12 +1027,13 @@ export default class NPC {
   }
 
   // Скорость юнита
-  private _getSpeed(
-    race: Races,
-    isJump: boolean,
-    isAttack: boolean,
-  ) {
-    return (isAttack ? 2 : 1) * (isJump ? 0.8 : 1) * Number(process.env.NPC_SPEED) * RacesConfig[race].speed;
+  private _getSpeed(race: Races, isJump: boolean, isAttack: boolean) {
+    return (
+      (isAttack ? 2 : 1) *
+      (isJump ? 0.8 : 1) *
+      Number(process.env.NPC_SPEED) *
+      RacesConfig[race].speed
+    );
   }
 
   // Обновить откат
@@ -828,17 +1042,28 @@ export default class NPC {
     this._speed = this._getSpeed(unit.race, false, false);
     self.scene[unit.id].getWorldDirection(this._direction);
     this._direction.y = 0;
-    this._direction.normalize().negate().multiplyScalar(this._speed * self.events.delta);
+    this._direction
+      .normalize()
+      .negate()
+      .multiplyScalar(this._speed * self.events.delta);
     collider.velocity.add(this._direction);
   }
 
   // Обновить продвижение вперед
   private _updateForward(self: ISelf, unit: IUnit, collider: IUnitCollider) {
     // console.log('Продвигаюсь!!!');
-    this._speed = this._getSpeed(unit.race, unit.isJump, unit.lifecycle === Lifecycle.attack);
+    this._speed = this._getSpeed(
+      unit.race,
+      unit.isJump,
+      unit.lifecycle === Lifecycle.attack,
+    );
     self.scene[unit.id].getWorldDirection(this._direction);
     this._direction.y = 0;
-    this._direction.normalize().multiplyScalar(this._speed  * RacesConfig[unit.race].speed * self.events.delta);
+    this._direction
+      .normalize()
+      .multiplyScalar(
+        this._speed * RacesConfig[unit.race].speed * self.events.delta,
+      );
     collider.velocity.add(this._direction);
   }
 
@@ -853,27 +1078,41 @@ export default class NPC {
       this._timerStartCreate = 0;
     }
 
-    // Ленивые проверки 
+    // Ленивые проверки
     this._timerLazyCheck += self.events.delta;
     if (this._timerLazyCheck > 0.2) this._timerLazyCheck = 0;
 
     // Главная оптимизирующая механика
-    this._listAnimate = [...this.list.filter((unit) => !unit.isSleep && unit.lifecycle !== Lifecycle.dead)];
-    this._listSleepAnimate = [...this.list.filter((unit) => unit.isSleep && unit.lifecycle !== Lifecycle.dead)];
-    
+    this._listAnimate = [
+      ...this.list.filter(
+        (unit) => !unit.isSleep && unit.lifecycle !== Lifecycle.dead,
+      ),
+    ];
+    this._listSleepAnimate = [
+      ...this.list.filter(
+        (unit) => unit.isSleep && unit.lifecycle !== Lifecycle.dead,
+      ),
+    ];
+
     this._number = Helper.randomInteger(0, this._listSleepAnimate.length - 1);
-    this._number2 = this._listAnimate.length < Number(process.env.SLEEP_ANIMATE) ?
-      Number(process.env.SLEEP_ANIMATE) - this._listAnimate.length :
-      Number(process.env.SLEEP_ANIMATE_MIN);
+    this._number2 =
+      this._listAnimate.length < Number(process.env.SLEEP_ANIMATE)
+        ? Number(process.env.SLEEP_ANIMATE) - this._listAnimate.length
+        : Number(process.env.SLEEP_ANIMATE_MIN);
 
     if (this._number + this._number2 < this._listSleepAnimate.length) {
-      this._listSleepAnimateResult = this._listSleepAnimate
-        .slice(this._number, this._number + this._number2);
+      this._listSleepAnimateResult = this._listSleepAnimate.slice(
+        this._number,
+        this._number + this._number2,
+      );
     } else {
       this._listSleepAnimateResult = this._listSleepAnimate
         .slice(this._number, this._listSleepAnimate.length - 1)
-        .concat(this._listSleepAnimate
-          .slice(0, this._number + this._number2 - this._listSleepAnimate.length + 1)
+        .concat(
+          this._listSleepAnimate.slice(
+            0,
+            this._number + this._number2 - this._listSleepAnimate.length + 1,
+          ),
         );
     }
 
@@ -886,7 +1125,8 @@ export default class NPC {
       );
     } */
 
-    this._listAnimate.concat(this._listSleepAnimateResult)
+    this._listAnimate
+      .concat(this._listSleepAnimateResult)
       .forEach((unit: IUnit) => {
         this._collider = this.colliders[unit.id];
         if (this._collider) {
@@ -894,52 +1134,74 @@ export default class NPC {
           if (this._isNeedOctreeUnit(unit)) this._setUnitOctree(self, unit.id);
           // Размер коробки
           this._box = RacesConfig[unit.race].box;
-          
+
           // Если сброс таймера - проверяем юнита
-          if (!this._timerLazyCheck) this._checkUnit(self, unit, this._collider, this._box.y);
+          if (!this._timerLazyCheck)
+            this._checkUnit(self, unit, this._collider, this._box.y);
 
           if (unit.animation !== 'dead' && unit.lifecycle !== Lifecycle.born) {
             // Если юнит под ударом - устанавливаем удар
-            if (unit.isOnHit && !this._collider.isHit) this._setHit(this._collider);
+            if (unit.isOnHit && !this._collider.isHit)
+              this._setHit(this._collider);
             else {
               // "Бросаем кости"
-              this._number = Helper.randomInteger(1, Math.round(Number(process.env.MOTIVATION) / RacesConfig[unit.race].intelligence));
+              this._number = Helper.randomInteger(
+                1,
+                Math.round(
+                  Number(process.env.MOTIVATION) /
+                    RacesConfig[unit.race].intelligence,
+                ),
+              );
             }
 
             // Решения которые принимаются только когда отработали счетчики
-            if (
-              !this._collider.timer &&
-              !this._collider.timerNo
-            ) {
+            if (!this._collider.timer && !this._collider.timerNo) {
               this._choizeNewAction(self, unit, this._collider, this._number);
             } else this._updateTimers(self, this._collider); // продвигаем счетчики
-            
-            if (this._collider.isHit) this._updateHit(unit, this._collider); // Урон
+
+            if (this._collider.isHit)
+              this._updateHit(unit, this._collider); // Урон
             else {
               if (this._collider.isCry) this._updateCry(unit, this._collider); // Крик
-              if (this._collider.isAttack) this._updateAttack(self, unit, this._collider); // Выстрел
-              if (this._collider.isKick) this._updateKick(self, unit, this._collider); // Пинок
-              if (this._collider.isJump || this._collider.isJump2) this._updateJump(unit.race, this._collider); // Прыжок
-              if (this._collider.isBackward) this._updateBack(self, unit, this._collider); // Откат
-              if (this._collider.isForward && !this._collider.isCry && !this._collider.isAttack && !this._collider.isKick && !this._collider.isBackward) this._updateForward(self, unit, this._collider); // Вперед
-            
+              if (this._collider.isAttack)
+                this._updateAttack(self, unit, this._collider); // Выстрел
+              if (this._collider.isKick)
+                this._updateKick(self, unit, this._collider); // Пинок
+              if (this._collider.isJump || this._collider.isJump2)
+                this._updateJump(unit.race, this._collider); // Прыжок
+              if (this._collider.isBackward)
+                this._updateBack(self, unit, this._collider); // Откат
+              if (
+                this._collider.isForward &&
+                !this._collider.isCry &&
+                !this._collider.isAttack &&
+                !this._collider.isKick &&
+                !this._collider.isBackward
+              )
+                this._updateForward(self, unit, this._collider); // Вперед
+
               // Независимые "постоянные" изменения, если не прыгает - повороты
-              if (!this._collider.isJump) this._updateRotate(self, unit, this._collider, this._number);
+              if (!this._collider.isJump)
+                this._updateRotate(self, unit, this._collider, this._number);
             }
           }
 
           // Потеря ускорения если юнит находится на полу
           if (this._collider.isNotJump) {
             // Если родился и достиг пола - переключаем этап жизненного цикла
-            if (unit.lifecycle === Lifecycle.born) unit.lifecycle = Lifecycle.idle;
+            if (unit.lifecycle === Lifecycle.born)
+              unit.lifecycle = Lifecycle.idle;
 
-            this._collider.velocity.addScaledVector(this._collider.velocity, Helper.damping(self.events.delta));
+            this._collider.velocity.addScaledVector(
+              this._collider.velocity,
+              Helper.damping(self.events.delta),
+            );
           } else {
             // Гравитация
             this._collider.velocity.y -=
               Number(process.env.GRAVITY) * self.events.delta;
 
-            if (unit.animation === 'dead') {                
+            if (unit.animation === 'dead') {
               // Останавливаем горизонтальное ускорение
               this._collider.velocity.x = 0;
               this._collider.velocity.z = 0;
@@ -968,47 +1230,50 @@ export default class NPC {
               this._itemInfo.animation = 'dead';
 
               // Ищем тех, для кого он был целью
-              this.list.filter((npc) => this.colliders[npc.id] && this.colliders[npc.id].target === unit.id).forEach((npc) => {
-                this._checkUnit(self, npc, this.colliders[npc.id], this._box.y);
-              });
+              this.list
+                .filter(
+                  (npc) =>
+                    this.colliders[npc.id] &&
+                    this.colliders[npc.id].target === unit.id,
+                )
+                .forEach((npc) => {
+                  this._checkUnit(
+                    self,
+                    npc,
+                    this.colliders[npc.id],
+                    this._box.y,
+                  );
+                });
 
               setTimeout(() => {
                 unit.lifecycle = Lifecycle.dead;
-
-                // Считаем
-                this.counters = {
-                  ...this.counters,
-                  [`${unit.race}`]: ++this.counters[`${unit.race}`],
-                };
-
                 setTimeout(() => {
-                  // Удаляем из списков
-                  this.list = this.list.filter((npc) => npc.id !== unit.id);
-                  this.listInfo = this.listInfo.filter((npc) => npc.id !== unit.id);
-
-                  // removeNPC event emit
-                  self.emiiter.emit(EmitterEvents.removeNPC, unit.id);
-                  setTimeout(() => {
-                    // На перерождение
-                    this.addUnit(self, unit.id);
-                  }, Number(process.env.REINCARNATION_NPC_TIME));
+                  this._tryToRemoveUnit(self, unit.id);
                 }, Number(process.env.CLEAN_NPC_TIME));
               }, 7500);
             }
           } else {
             // Регенерация
-            if (unit.health < 100) unit.health += self.events.delta *
-              RacesConfig[unit.race].regeneration *
-              Number(process.env.REGENERATION);
+            if (unit.health < 100)
+              unit.health +=
+                self.events.delta *
+                RacesConfig[unit.race].regeneration *
+                Number(process.env.REGENERATION);
             if (unit.health > 100) unit.health = 100;
 
             if (this._collider.isHit) unit.animation = 'hit';
             else if (this._collider.isCry) unit.animation = 'cry';
             else if (this._collider.isAttack) unit.animation = 'attack';
             else if (this._collider.isJump) unit.animation = 'jump';
-            else if (this._collider.isKick && this._collider.isBackward) unit.animation = 'back';
-            else if (this._collider.isKick && !this._collider.isBackward) unit.animation = 'kick';
-            else if (unit.lifecycle === Lifecycle.attack && this._collider.isForward) unit.animation = 'run';
+            else if (this._collider.isKick && this._collider.isBackward)
+              unit.animation = 'back';
+            else if (this._collider.isKick && !this._collider.isBackward)
+              unit.animation = 'kick';
+            else if (
+              unit.lifecycle === Lifecycle.attack &&
+              this._collider.isForward
+            )
+              unit.animation = 'run';
             else if (this._collider.isForward) unit.animation = 'walking';
             else unit.animation = 'idle';
 
@@ -1042,6 +1307,29 @@ export default class NPC {
       });
   }
 
+  // На подбор трупа
+  public onPickDead(self: ISelf, id: string) {
+    this._tryToRemoveUnit(self, id);
+  }
+
+  // Пытаемся удалить пользователя
+  private _tryToRemoveUnit(self: ISelf, id: string) {
+    this._itemBack = this.listBack.find((npc) => npc.id === id);
+    if (this._itemBack) {
+      // Удаляем из списков
+      this.list = this.list.filter((npc) => npc.id !== id);
+      this.listBack = this.listBack.filter((npc) => npc.id !== id);
+      this.listInfo = this.listInfo.filter((npc) => npc.id !== id);
+
+      // removeNPC event emit
+      self.emiiter.emit(EmitterEvents.removeNPC, id);
+      setTimeout(() => {
+        // На перерождение
+        this.addUnit(self, id);
+      }, Number(process.env.REINCARNATION_NPC_TIME));
+    }
+  }
+
   // Пересоздаем динамическое октодерево из самых ближних коробок и "без его коробки"
   private async _setUnitOctree(self: ISelf, id: string): Promise<void> {
     this._mesh = new THREE.Mesh(
@@ -1058,7 +1346,7 @@ export default class NPC {
             item.animation !== 'dead' &&
             item.id !== id &&
             self.scene[item.id].position.distanceTo(self.scene[id].position) <
-            3,
+              3,
         )
         .sort(
           (a, b) =>
@@ -1081,15 +1369,17 @@ export default class NPC {
   public onExplosion(message: IExplosion): IUpdateMessage[] {
     // console.log('Zombies onExplosion!!!!!!!!!!!!!: ', message);
     this._updates = [];
-    this.list.filter((unit) => new THREE.Vector3(
-      message.positionX,
-      message.positionY,
-      message.positionZ,
-    ).distanceTo(new THREE.Vector3(
-      unit.positionX,
-      unit.positionY,
-      unit.positionZ,
-    )) < Number(process.env.EXPLOSION_DISTANCE))
+    this.list
+      .filter(
+        (unit) =>
+          new THREE.Vector3(
+            message.positionX,
+            message.positionY,
+            message.positionZ,
+          ).distanceTo(
+            new THREE.Vector3(unit.positionX, unit.positionY, unit.positionZ),
+          ) < Number(process.env.EXPLOSION_DISTANCE),
+      )
       .forEach((unit: IUnit) => {
         this._v1 = new THREE.Vector3(
           message.positionX,
@@ -1102,30 +1392,70 @@ export default class NPC {
           unit.positionZ,
         );
         this._number = this._v1.distanceTo(this._v2);
-        // console.log('Zombies onExplosion!!!!!!!!!!!!!: ', unit.id, this._number);
+        // console.log('NPC onExplosion!!!!!!!!!!!!!: ', unit.id, this._number);
         if (this._number < Number(process.env.EXPLOSION_DISTANCE)) {
           // При попадании по коробке - ущерб сильнее
           // Если режим скрытый - в два раза меньше
-          unit.health -= this._helper.getDamage('shot', null, unit.race, this._number, unit.id === message.enemy, false);
+          unit.health -= this._helper.getDamage(
+            'shot',
+            null,
+            unit.race,
+            this._number,
+            unit.id === message.enemy,
+            false,
+          );
           this._updates.push({
             id: unit.id,
             health: unit.health,
             is: unit.id === message.enemy,
           });
-          // Если растояние от взрыва меньше того, от которого случается урон - показываем удар на персонаже 
-          if (this._number < Number(process.env.EXPLOSION_DISTANCE) / 1.5) unit.isOnHit = true;
+          // Если растояние от взрыва меньше того, от которого случается урон - показываем удар на персонаже
+          if (this._number < Number(process.env.EXPLOSION_DISTANCE) / 1.5)
+            unit.isOnHit = true;
         }
       });
     return this._updates;
   }
 
   // На попадание дальним по неписи
-  public onNPCShotHit(message: { id: string, race: Races, value: number }): void {
+  public onNPCShotHit(message: {
+    id: string;
+    race: Races;
+    value: number;
+  }): void {
     // console.log('NPC onNPCShotHit: ', message);
     this._item = this._getNPCById(message.id);
     if (this._item) {
       this._item.isOnHit = true;
-      this._item.health -= this._helper.getDamage('light', message.race, this._item.race, message.value, false, false);
+      this._item.health -= this._helper.getDamage(
+        'light',
+        message.race,
+        this._item.race,
+        message.value,
+        false,
+        false,
+      );
     }
+  }
+
+  // Поиск слишком старых особей
+  public lazyCheck(): void {
+    this._number = Helper.getUnixtime();
+    this.list
+      .filter(
+        (npc) =>
+          npc.lifecycle !== Lifecycle.dead && npc.lifecycle !== Lifecycle.born,
+      )
+      .forEach((npc: IUnit) => {
+        this._item = this._getNPCById(npc.id);
+        this._itemBack = this._getNPCBackById(npc.id);
+        if (
+          this._itemBack &&
+          this._number - this._itemBack.start >
+            Number(process.env.NPC_LIVE_TIME)
+        ) {
+          this._item.health = -100; // Умер от старости
+        }
+      });
   }
 }

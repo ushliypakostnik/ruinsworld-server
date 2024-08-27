@@ -9,7 +9,10 @@ import {
 
 // Types
 import {
+  IPointMessage,
   IUpdateMessage,
+  IMessage,
+  IPickMessage,
   IShot,
   IExplosion,
   ILocationUnits,
@@ -60,15 +63,14 @@ export default class Gateway
       this._locations = this.game.world.array.filter(
         (location) => location.users.length > 0,
       );
-      this._locations
-        .forEach((location: ILocationUnits) => {
-          this.server
-            .to(location.id)
-            .emit(
-              Messages.updateToClients,
-              this.game.getGameUpdates(location.id),
-            );
-        });
+      this._locations.forEach((location: ILocationUnits) => {
+        this.server
+          .to(location.id)
+          .emit(
+            Messages.updateToClients,
+            this.game.getGameUpdates(location.id),
+          );
+      });
     }
   }
 
@@ -173,10 +175,36 @@ export default class Gateway
     this.server.to(message.location).emit(Messages.onRelocation, message.id);
   }
 
-    // Переход на локацию
+  // Переход на локацию
   @SubscribeMessage(Messages.location)
   async onLocation(client, message: string): Promise<void> {
     // console.log('Gateway onLocation!!!', message);
     this.game.onLocation(message);
+  }
+
+  // Смена флага на контрольной точке
+  @SubscribeMessage(Messages.point)
+  async onPoint(client, message: IPointMessage): Promise<void> {
+    // console.log('Gateway onPoint!!!', message);
+    this.game.onPoint(message);
+  }
+
+  // Игрок подобрал что-то
+  @SubscribeMessage(Messages.pick)
+  async onPick(client, message: IPickMessage): Promise<void> {
+    // console.log('Gateway onPick!!!', message);
+    this.server
+      .to(message.location)
+      .emit(Messages.onPick, {
+        uuid: message.uuid,
+        exp: this.game.onPick(message),
+      });
+  }
+
+  // Игрок подобрал что-то
+  @SubscribeMessage(Messages.userDead)
+  async onUserDead(client, message: IMessage): Promise<void> {
+    // console.log('Gateway onUserDead!!!', message);
+    this.game.onUserDead(message);
   }
 }

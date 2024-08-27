@@ -11,6 +11,7 @@ import {
   IExplosion,
   IUnitInfo,
   IUnit,
+  IPickMessage,
 } from '../../../models/api';
 
 // Modules
@@ -18,7 +19,7 @@ import Unit from './unit';
 
 // Utils
 import Helper from '../../utils/helper';
-import { Lifecycle, Races, RacesConfig } from 'src/models/gameplay';
+import { Lifecycle, Races } from 'src/models/gameplay';
 
 @Injectable()
 export default class Users {
@@ -43,7 +44,7 @@ export default class Users {
     health: 100,
     name: null,
     positionX: 0,
-    positionY: 0,
+    positionY: 0.1,
     positionZ: 0,
     directionX: -0.7,
     directionY: 0,
@@ -54,6 +55,7 @@ export default class Users {
     isSleep: false,
     isJump: false,
     isOnHit2: false,
+    exp: 0,
   };
 
   constructor() {
@@ -97,12 +99,14 @@ export default class Users {
 
   // Установка нового игрока
   public setNewPlayer(self: ISelf, message: IUpdateMessage): Unit {
-    ++this.counter
+    ++this.counter;
     this._string = Helper.generateUniqueId(4, this._getIds());
     this._item = new Unit(this._string);
     this._item = {
       ...this._item,
       ...this._START,
+      positionX: Helper.randomInteger(1, 2) * Helper.staticPlusOrMinus(),
+      positionZ: Helper.randomInteger(1, 2) * Helper.staticPlusOrMinus(),
       name: message.name as string,
       race: message.race as Races,
     };
@@ -157,12 +161,13 @@ export default class Users {
   }
 
   // На пинок по игроку
-  public onPlayerKick(message: { id: string, value: number }): void {
+  public onPlayerKick(message: { id: string; value: number }): void {
     this._item = this._getUserById(message.id as string);
     // console.log('Users onPlayerKick: ', message);
     if (this._item) {
       this._item.isOnHit2 = true;
-      this._item.health -= message.value / (this._item.animation.includes('hide') ? 2 : 1);
+      this._item.health -=
+        message.value / (this._item.animation.includes('hide') ? 2 : 1);
       setTimeout(() => {
         // console.log('Users onPlayerKick: ', message);
         this._item = this._getUserById(message.id as string);
@@ -172,12 +177,23 @@ export default class Users {
   }
 
   // На попадание дальним по игроку
-  public onNPCShotHit(message: { id: string, race: Races, value: number }): void {
+  public onNPCShotHit(message: {
+    id: string;
+    race: Races;
+    value: number;
+  }): void {
     this._item = this._getUserById(message.id as string);
     // console.log('Users onNPCShotHit: ', message);
     if (this._item) {
       this._item.isOnHit2 = true;
-      this._item.health -= this._helper.getDamage('light', message.race, this._item.race, message.value, false, this._item.animation.includes('hide'));
+      this._item.health -= this._helper.getDamage(
+        'light',
+        message.race,
+        this._item.race,
+        message.value,
+        false,
+        this._item.animation.includes('hide'),
+      );
       setTimeout(() => {
         // console.log('Users onNPCShotHit: ', message);
         this._item = this._getUserById(message.id as string);
@@ -190,43 +206,61 @@ export default class Users {
   public onExplosion(message: IExplosion): IUpdateMessage[] {
     // console.log('Users onExplosion!!!', message);
     this._updates = [];
-    this.list.filter((player) => new THREE.Vector3(
-      message.positionX,
-      message.positionY,
-      message.positionZ,
-    ).distanceTo(new THREE.Vector3(
-      player.positionX,
-      player.positionY,
-      player.positionZ,
-    )) < Number(process.env.EXPLOSION_DISTANCE)).forEach((player: Unit) => {
-      this._v1 = new THREE.Vector3(
-        message.positionX,
-        message.positionY,
-        message.positionZ,
-      );
-      this._v2 = new THREE.Vector3(
-        player.positionX,
-        player.positionY,
-        player.positionZ,
-      );
-      if (this._v1.distanceTo(this._v2) < Number(process.env.EXPLOSION_DISTANCE)) {
-        this._number = 1;
-        if (message.player === player.id) this._number = Number(process.env.SELF_DAMAGE);
-        // Если это выстрел игрока - ущерб сильнее
-        // При попадании по коробке - ущерб сильнее
-        // Если режим скрытый - в два раза меньше
-        player.health -= this._helper.getDamage('shot', null, player.race, this._v1.distanceTo(this._v2), player.id === message.enemy, player.animation.includes('hide')) * this._number;
-        this._updates.push({
-          id: player.id,
-          health: player.health,
-          is: player.id === message.enemy,
-        });
-      }
-      if (player.health < 0) {
-        player.lifecycle = Lifecycle.dead;
-        player.animation = 'dead';
-      }
-    });
+    this.list
+      .filter(
+        (player) =>
+          new THREE.Vector3(
+            message.positionX,
+            message.positionY,
+            message.positionZ,
+          ).distanceTo(
+            new THREE.Vector3(
+              player.positionX,
+              player.positionY,
+              player.positionZ,
+            ),
+          ) < Number(process.env.EXPLOSION_DISTANCE),
+      )
+      .forEach((player: Unit) => {
+        this._v1 = new THREE.Vector3(
+          message.positionX,
+          message.positionY,
+          message.positionZ,
+        );
+        this._v2 = new THREE.Vector3(
+          player.positionX,
+          player.positionY,
+          player.positionZ,
+        );
+        if (
+          this._v1.distanceTo(this._v2) < Number(process.env.EXPLOSION_DISTANCE)
+        ) {
+          this._number = 1;
+          if (message.player === player.id)
+            this._number = Number(process.env.SELF_DAMAGE);
+          // Если это выстрел игрока - ущерб сильнее
+          // При попадании по коробке - ущерб сильнее
+          // Если режим скрытый - в два раза меньше
+          player.health -=
+            this._helper.getDamage(
+              'shot',
+              null,
+              player.race,
+              this._v1.distanceTo(this._v2),
+              player.id === message.enemy,
+              player.animation.includes('hide'),
+            ) * this._number;
+          this._updates.push({
+            id: player.id,
+            health: player.health,
+            is: player.id === message.enemy,
+          });
+        }
+        if (player.health < 0) {
+          player.lifecycle = Lifecycle.dead;
+          player.animation = 'dead';
+        }
+      });
     return this._updates;
   }
 
@@ -271,17 +305,8 @@ export default class Users {
     this._mesh = self.scene[this._item.id];
     if (this._mesh) {
       if (this._item.animation.includes('hide'))
-        this._mesh.position.set(
-          this._v1.x,
-          -0.4,
-          this._v1.z,
-        );
-      else
-        this._mesh.position.set(
-          this._v1.x,
-          -0.6,
-          this._v1.z,
-        );
+        this._mesh.position.set(this._v1.x, -0.4, this._v1.z);
+      else this._mesh.position.set(this._v1.x, -0.6, this._v1.z);
     }
   }
 
@@ -336,7 +361,8 @@ export default class Users {
       this._mesh = self.scene[user.id];
       if (this._mesh) {
         if (user.health > 0) {
-          if (user.health < 100) user.health += self.events.delta * Number(process.env.REGENERATION);
+          if (user.health < 100)
+            user.health += self.events.delta * Number(process.env.REGENERATION);
           if (user.health > 100) user.health = 100;
         }
 
@@ -358,11 +384,52 @@ export default class Users {
 
   // Очищение проигравших игроков
   public cleanCheck(self: ISelf): void {
-    const time = Helper.getUnixtime();
-    this.list.filter((player) => player.lifecycle === Lifecycle.dead).forEach((player: IUnit) => {
-      console.log('Users cleanCheck!!!', time, player);
-      this._itemBack = this._getUserBackById(player.id);
-      if (this._itemBack && time - this._itemBack.time > Number(process.env.CLEAN_CHECK_TIME)) this._removePlayer(self, player.id);
-    });
+    this._number = Helper.getUnixtime();
+    this.list
+      .filter((player) => player.lifecycle === Lifecycle.dead)
+      .forEach((player: IUnit) => {
+        console.log('Users cleanCheck!!!', this._number, player);
+        this._itemBack = this._getUserBackById(player.id);
+        if (
+          this._itemBack &&
+          this._number - this._itemBack.time > Number(process.env.CLEAN_CHECK_TIME)
+        )
+          this._removePlayer(self, player.id);
+      });
+  }
+
+  // Игрок умер
+  public onUserDead(id: string): void {
+    this._itemInfo = this._getUserInfoById(id as string);
+    if (this._itemInfo) this._itemInfo.animation = 'dead';
+  }
+
+  // Игрок что-то подобрал
+  public onPickDead(message: IPickMessage): number {
+    this._item = this._getUserById(message.user as string);
+    if (this._item) {
+      switch (message.text) {
+        case Races.bidens:
+          this._item.exp += 450;
+          break;
+        case Races.mutant:
+          this._item.exp += 300;
+          break;
+        case Races.orc:
+          this._item.exp += 200;
+          break;
+        case Races.soldier:
+          this._item.exp += 100;
+          break;
+        case Races.cyborg:
+          this._item.exp += 100;
+          break;
+        case Races.zombie:
+          this._item.exp += 50;
+          break;
+      }
+      return this._item.exp;
+    }
+    return null;
   }
 }
