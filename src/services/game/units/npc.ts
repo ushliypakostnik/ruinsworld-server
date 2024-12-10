@@ -10,7 +10,6 @@ import type {
 import type { TResult, TRayResult } from '../../../models/utils';
 import type {
   IUnit,
-  IMessage,
   IUnitInfo,
   IUnitBack,
   IExplosion,
@@ -19,7 +18,14 @@ import type {
 
 // Constants
 import { EmitterEvents } from '../../../models/modules';
-import { Lifecycle, Races, RacesConfig } from '../../../models/gameplay';
+import {
+  Moves,
+  Animations,
+  Damages,
+  Lifecycle,
+  Races,
+  RacesConfig,
+} from '../../../models/gameplay';
 
 // Utils
 import Capsule from '../../../services/math/capsule';
@@ -35,15 +41,10 @@ export default class NPC {
   public listInfo: IUnitInfo[];
   public listBack: IUnitBack[];
   public colliders: IUnitColliders;
+
   public counter = 0;
-  public counters = {
-    [Races.bidens]: 0,
-    [Races.mutant]: 0,
-    [Races.orc]: 0,
-    [Races.zombie]: 0,
-    [Races.soldier]: 0,
-    [Races.cyborg]: 0,
-  };
+  public counters = {};
+  private _RACES: Races[];
 
   private _collider: IUnitCollider;
   private _item!: IUnit;
@@ -99,15 +100,6 @@ export default class NPC {
     exp: 0,
   };
 
-  private _RACES = [
-    Races.bidens,
-    Races.mutant,
-    Races.orc,
-    Races.zombie,
-    Races.soldier,
-    Races.cyborg,
-  ];
-
   constructor() {
     this.list = [];
     this.listInfo = [];
@@ -116,6 +108,16 @@ export default class NPC {
     this._v = new THREE.Vector3();
     this._direction = new THREE.Vector3();
     this._helper = new Helper();
+
+    // Инициализируем счетчики
+    this._RACES = [];
+    Object.keys(Races).forEach((race) => {
+      if (race !== Races.human && race !== Races.reptiloid)
+        this._RACES.push(race as Races);
+    });
+    this._RACES.forEach((race) => {
+      this.counters[race] = 0;
+    });
   }
 
   private _getNPCById(id: string): IUnit {
@@ -131,57 +133,16 @@ export default class NPC {
   }
 
   // Взять неписей на локации
-  public getNPCOnLocation(ids: string[]): IUnit[] {
+  public getUnitsOnLocation(ids: string[]): IUnit[] {
     return this.list.filter((unit) => ids.includes(unit.id));
   }
 
-  // На релокацию неписей
-  public onNPCRelocation(self: ISelf, message: IUpdateMessage): void {
-    this._item = this._getNPCById(message.id as string);
-    // console.log('NPC onNPCRelocation!!!!!!!!!!!!!: ', this._item);
-    if (this._item) {
-      if (message.direction === 'right' || message.direction === 'left')
-        this._item.positionX *= -1;
-      else if (message.direction === 'top' || message.direction === 'bottom')
-        this._item.positionZ *= -1;
-
-      this._v1 = new THREE.Vector3(
-        this._item.positionX,
-        0,
-        this._item.positionZ,
-      ).multiplyScalar(0.85);
-
-      this._box = RacesConfig[this._item.race].box;
-      this._item.positionX = this._v1.x;
-      this._item.positionY = 0;
-      this._item.positionZ = this._v1.z;
-
-      this._collider = this.colliders[this._item.id];
-      if (this._collider) {
-        this._collider.collider.start.x = this._item.positionX;
-        this._collider.collider.start.y = this._box.y;
-        this._collider.collider.start.z = this._item.positionZ;
-        this._collider.collider.end.x = this._item.positionX;
-        this._collider.collider.end.y = this._item.positionY;
-        this._collider.collider.end.z = this._item.positionZ;
-
-        if (self.scene[this._item.id]) {
-          self.scene[this._item.id].position.set(
-            this._item.positionX,
-            this._item.positionY + this._box.y / 2,
-            this._item.positionZ,
-          );
-        }
-      }
-    }
-  }
-
   // Добавить юнит
-  public addUnit(self: ISelf, id?: string) {
-    // console.log('NPC addUnit!!!', this.counter, id);
+  private _addUnit(self: ISelf, id?: string) {
+    // console.log('NPC _addUnit!!!', this.counter, id);
     ++this.counter;
     if (id) this._id = id;
-    else this._id = `NPC1/${this.counter}`;
+    else this._id = `NPC/${this.counter}`;
     this._item = new Unit(this._id);
 
     // Добавляем непись расы которой меньше всего
@@ -200,14 +161,18 @@ export default class NPC {
       }
     });
     this.counters[this._string] += 1;
-    // console.log('NPC addUnit: ', this._string);
+
     this._item = {
       ...this._item,
       ...this._START,
       race: this._string as Races,
     };
-    this._item.positionX += Helper.randomInteger(-100, 100) + 10;
-    this._item.positionZ += Helper.randomInteger(-100, 100) + 10;
+    this._item.positionX += Helper.randomInteger(-100, 100);
+    if (this._item.positionX > 0) this._item.positionX += 20;
+    else this._item.positionX -= 20;
+    this._item.positionZ += Helper.randomInteger(-100, 100);
+    if (this._item.positionZ > 0) this._item.positionZ += 20;
+    else this._item.positionZ -= 20;
     this._item.positionY = 30;
 
     this.list.push(this._item);
@@ -215,6 +180,10 @@ export default class NPC {
     this.listBack.push({
       id: this._item.id,
       start: this._number,
+      time:
+        this._string === Races.bidens
+          ? Helper.randomInteger(0, Number(process.env.NPC_LIVE_TIME)) // Байденсы живут немного поменьше
+          : Helper.randomInteger(0, Number(process.env.NPC_LIVE_TIME) * 2),
     });
 
     if (id) {
@@ -250,7 +219,7 @@ export default class NPC {
       self.scene[this._id] = this._mesh;
     }
 
-    // if (id) console.log('NPC addUnit!!!', this._item);
+    // if (id) console.log('NPC _addUnit!!!', this._item);
 
     // Колайдер
     this.colliders[this._id] = {
@@ -280,6 +249,7 @@ export default class NPC {
       isBackward: false,
       backwardTimer: 0,
       timer: 0,
+      timerNoHit: 0,
       timerNo: 0,
       timerNoLimit: 1,
       isBend: false,
@@ -346,7 +316,7 @@ export default class NPC {
 
   // Юниты которым нужно построить октомодель в этом кадре
   private _isNeedOctreeUnit(unit: IUnit) {
-    if (unit.animation === 'idle' || unit.lifecycle === Lifecycle.dead)
+    if (unit.animation === Animations.idle || unit.lifecycle === Lifecycle.dead)
       return false;
     return true;
   }
@@ -413,7 +383,7 @@ export default class NPC {
 
     this._listInfo2 = self.unitsByLocations[self.units[unit.id]].filter(
       (item) =>
-        item.animation !== 'dead' &&
+        item.animation !== Animations.dead &&
         item.id !== unit.id &&
         RacesConfig[unit.race].enemy.includes(item.race) &&
         this._isUnitSeeTarget(
@@ -570,6 +540,11 @@ export default class NPC {
     collider.timer = 0.00000001;
   }
 
+  // Таймер на конец действия
+  private _onStartAction2(collider: IUnitCollider) {
+    collider.timerNoHit = 0.00000001;
+  }
+
   // Конец действия
   private _onFinishAction(collider: IUnitCollider) {
     collider.timer = 0;
@@ -649,6 +624,7 @@ export default class NPC {
     if (collider.isJump) collider.isJump = false;
     if (collider.isJump2) collider.isJump2 = false;
     this._onStartAction(collider);
+    this._onStartAction2(collider);
   }
 
   // Пнуть
@@ -851,6 +827,12 @@ export default class NPC {
   // Продвигаем таймеры
   private _updateTimers(self: ISelf, collider: IUnitCollider) {
     if (collider.timer) collider.timer += self.events.delta;
+    if (collider.timerNoHit) {
+      collider.timerNoHit += self.events.delta;
+      if (collider.timerNoHit > 3.5) {
+        collider.timerNoHit = 0;
+      }
+    }
     if (collider.timerNo) {
       collider.timerNo += self.events.delta;
       if (collider.timerNo > collider.timerNoLimit) {
@@ -952,29 +934,22 @@ export default class NPC {
           // Урон неписи
           this._item = this._getNPCById(collider.target);
           this._item.isOnHit = true;
-          this._itemInfo = this.listInfo.find(
-            (npc) => npc.id === collider.target,
-          );
           this._item.health -= this._helper.getDamage(
-            'kick',
+            Damages.kick,
             unit.race,
-            this._itemInfo.race,
+            this._item.race,
             null,
             false,
             false,
+            unit.exp,
+            this._item.exp,
           );
         } else {
           // Урон игроку
           self.emiiter.emit(EmitterEvents.playerKick, {
             id: collider.target,
-            value: this._helper.getDamage(
-              'kick',
-              unit.race,
-              null,
-              null,
-              false,
-              false,
-            ),
+            race: unit.race,
+            exp: unit.exp,
           });
         }
       }
@@ -1072,8 +1047,12 @@ export default class NPC {
     // Решение на создание нового зомби после создания мира
     this._timerStartCreate += self.events.delta;
     if (this._timerStartCreate > 0.2) {
-      if (this.counter < Number(process.env.MAX_NPC)) {
-        this.addUnit(self);
+      if (
+        this.counter <
+        Number(process.env.NPC_ON_LOCATION) *
+          Math.pow(Number(process.env.WORLD) * 2 + 1, 2)
+      ) {
+        this._addUnit(self);
       }
       this._timerStartCreate = 0;
     }
@@ -1141,7 +1120,11 @@ export default class NPC {
 
           if (unit.animation !== 'dead' && unit.lifecycle !== Lifecycle.born) {
             // Если юнит под ударом - устанавливаем удар
-            if (unit.isOnHit && !this._collider.isHit)
+            if (
+              unit.isOnHit &&
+              !this._collider.isHit &&
+              !this._collider.timerNoHit
+            )
               this._setHit(this._collider);
             else {
               // "Бросаем кости"
@@ -1201,7 +1184,7 @@ export default class NPC {
             this._collider.velocity.y -=
               Number(process.env.GRAVITY) * self.events.delta;
 
-            if (unit.animation === 'dead') {
+            if (unit.animation === Animations.dead) {
               // Останавливаем горизонтальное ускорение
               this._collider.velocity.x = 0;
               this._collider.velocity.z = 0;
@@ -1222,12 +1205,12 @@ export default class NPC {
 
           // Выставляем анимацию
           if (unit.health <= 0) {
-            unit.animation = 'dead';
+            unit.animation = Animations.dead;
 
             // Смотрим по легкому списку умер ли
             this._itemInfo = this.listInfo.find((npc) => npc.id === unit.id);
-            if (this._itemInfo.animation !== 'dead') {
-              this._itemInfo.animation = 'dead';
+            if (this._itemInfo.animation !== Animations.dead) {
+              this._itemInfo.animation = Animations.dead;
 
               // Ищем тех, для кого он был целью
               this.list
@@ -1248,7 +1231,7 @@ export default class NPC {
               setTimeout(() => {
                 unit.lifecycle = Lifecycle.dead;
                 setTimeout(() => {
-                  this._tryToRemoveUnit(self, unit.id);
+                  this._removeUnit(self, unit.id);
                 }, Number(process.env.CLEAN_NPC_TIME));
               }, 7500);
             }
@@ -1256,26 +1239,29 @@ export default class NPC {
             // Регенерация
             if (unit.health < 100)
               unit.health +=
-                self.events.delta *
-                RacesConfig[unit.race].regeneration *
-                Number(process.env.REGENERATION);
+                (self.events.delta *
+                  RacesConfig[unit.race].regeneration *
+                  Number(process.env.REGENERATION)) /
+                Helper.staticGetNPCCoef(unit.exp);
             if (unit.health > 100) unit.health = 100;
 
-            if (this._collider.isHit) unit.animation = 'hit';
-            else if (this._collider.isCry) unit.animation = 'cry';
-            else if (this._collider.isAttack) unit.animation = 'attack';
-            else if (this._collider.isJump) unit.animation = 'jump';
+            if (this._collider.isHit) unit.animation = Animations.hit;
+            else if (this._collider.isCry) unit.animation = Animations.cry;
+            else if (this._collider.isAttack)
+              unit.animation = Animations.attack;
+            else if (this._collider.isJump) unit.animation = Animations.jump;
             else if (this._collider.isKick && this._collider.isBackward)
-              unit.animation = 'back';
+              unit.animation = Animations.back;
             else if (this._collider.isKick && !this._collider.isBackward)
-              unit.animation = 'kick';
+              unit.animation = Animations.kick;
             else if (
               unit.lifecycle === Lifecycle.attack &&
               this._collider.isForward
             )
-              unit.animation = 'run';
-            else if (this._collider.isForward) unit.animation = 'walking';
-            else unit.animation = 'idle';
+              unit.animation = Animations.run;
+            else if (this._collider.isForward)
+              unit.animation = Animations.walking;
+            else unit.animation = Animations.idle;
 
             // console.log(unit.lifecycle, unit.animation, this._collider.timer);
           }
@@ -1294,7 +1280,7 @@ export default class NPC {
               this._v.y + this._box.y / 2,
               this._v.z,
             );
-            if (unit.animation !== 'dead') {
+            if (unit.animation !== Animations.dead) {
               unit.rotationY = self.scene[unit.id].rotation.y;
 
               unit.directionX = self.scene[unit.id].quaternion.x;
@@ -1307,14 +1293,59 @@ export default class NPC {
       });
   }
 
-  // На подбор трупа
-  public onPickDead(self: ISelf, id: string) {
-    this._tryToRemoveUnit(self, id);
+  // На релокацию неписей
+  public onNPCRelocation(self: ISelf, message: IUpdateMessage): void {
+    this._item = this._getNPCById(message.id as string);
+    // console.log('NPC onNPCRelocation!!!!!!!!!!!!!: ', this._item);
+    if (this._item) {
+      if (message.direction === Moves.right || message.direction === Moves.left)
+        this._item.positionX *= -1;
+      else if (
+        message.direction === Moves.top ||
+        message.direction === Moves.bottom
+      )
+        this._item.positionZ *= -1;
+
+      this._v1 = new THREE.Vector3(
+        this._item.positionX,
+        0,
+        this._item.positionZ,
+      ).multiplyScalar(0.85);
+
+      this._box = RacesConfig[this._item.race].box;
+      this._item.positionX = this._v1.x;
+      this._item.positionY = 0;
+      this._item.positionZ = this._v1.z;
+
+      this._collider = this.colliders[this._item.id];
+      if (this._collider) {
+        this._collider.collider.start.x = this._item.positionX;
+        this._collider.collider.start.y = this._box.y;
+        this._collider.collider.start.z = this._item.positionZ;
+        this._collider.collider.end.x = this._item.positionX;
+        this._collider.collider.end.y = this._item.positionY;
+        this._collider.collider.end.z = this._item.positionZ;
+
+        if (self.scene[this._item.id]) {
+          self.scene[this._item.id].position.set(
+            this._item.positionX,
+            this._item.positionY + this._box.y / 2,
+            this._item.positionZ,
+          );
+        }
+      }
+    }
   }
 
-  // Пытаемся удалить пользователя
-  private _tryToRemoveUnit(self: ISelf, id: string) {
-    this._itemBack = this.listBack.find((npc) => npc.id === id);
+  // На подбор трупа
+  public onPickDead(self: ISelf, id: string): number | null {
+    return this._removeUnit(self, id);
+  }
+
+  // Пытаемся удалить непись
+  private _removeUnit(self: ISelf, id: string): number | null {
+    this._item = this._getNPCById(id);
+    this._itemBack = this._getNPCBackById(id);
     if (this._itemBack) {
       // Удаляем из списков
       this.list = this.list.filter((npc) => npc.id !== id);
@@ -1325,9 +1356,12 @@ export default class NPC {
       self.emiiter.emit(EmitterEvents.removeNPC, id);
       setTimeout(() => {
         // На перерождение
-        this.addUnit(self, id);
+        this._addUnit(self, id);
       }, Number(process.env.REINCARNATION_NPC_TIME));
     }
+
+    if (this._item) return this._item.exp;
+    return null;
   }
 
   // Пересоздаем динамическое октодерево из самых ближних коробок и "без его коробки"
@@ -1343,7 +1377,7 @@ export default class NPC {
       this._listInfo2 = self.unitsByLocations[self.units[id]]
         .filter(
           (item) =>
-            item.animation !== 'dead' &&
+            item.animation !== Animations.dead &&
             item.id !== id &&
             self.scene[item.id].position.distanceTo(self.scene[id].position) <
               3,
@@ -1392,26 +1426,31 @@ export default class NPC {
           unit.positionZ,
         );
         this._number = this._v1.distanceTo(this._v2);
-        // console.log('NPC onExplosion!!!!!!!!!!!!!: ', unit.id, this._number);
         if (this._number < Number(process.env.EXPLOSION_DISTANCE)) {
           // При попадании по коробке - ущерб сильнее
           // Если режим скрытый - в два раза меньше
           unit.health -= this._helper.getDamage(
-            'shot',
+            Damages.shot,
             null,
             unit.race,
             this._number,
             unit.id === message.enemy,
             false,
+            null,
+            unit.exp,
           );
           this._updates.push({
             id: unit.id,
             health: unit.health,
             is: unit.id === message.enemy,
           });
-          // Если растояние от взрыва меньше того, от которого случается урон - показываем удар на персонаже
+          // Если растояние от взрыва меньше того, от которого случается урон -
+          // показываем удар на персонаже и активируем режим атаки на игрока
           if (this._number < Number(process.env.EXPLOSION_DISTANCE) / 1.5)
             unit.isOnHit = true;
+          this._collider = this.colliders[unit.id];
+          this._collider.target = message.player;
+          this._setAttackLifecycle(unit, this._collider);
         }
       });
     return this._updates;
@@ -1422,18 +1461,21 @@ export default class NPC {
     id: string;
     race: Races;
     value: number;
+    exp: number;
   }): void {
     // console.log('NPC onNPCShotHit: ', message);
     this._item = this._getNPCById(message.id);
     if (this._item) {
       this._item.isOnHit = true;
       this._item.health -= this._helper.getDamage(
-        'light',
+        Damages.light,
         message.race,
         this._item.race,
         message.value,
         false,
         false,
+        message.exp,
+        this._item.exp,
       );
     }
   }
@@ -1446,15 +1488,19 @@ export default class NPC {
         (npc) =>
           npc.lifecycle !== Lifecycle.dead && npc.lifecycle !== Lifecycle.born,
       )
-      .forEach((npc: IUnit) => {
-        this._item = this._getNPCById(npc.id);
+      .forEach((npc) => {
+        npc.exp += Number(process.env.EXP_NPC);
+
         this._itemBack = this._getNPCBackById(npc.id);
+        // У всех разное время жизни, предопределенное при рождении
         if (
           this._itemBack &&
           this._number - this._itemBack.start >
-            Number(process.env.NPC_LIVE_TIME)
+            Number(process.env.NPC_LIVE_TIME) + this._itemBack.time
         ) {
-          this._item.health = -100; // Умер от старости
+          // console.log('NPC lazyCheck() clean: ', this._number, npc, this._itemBack);
+          this._item = this._getNPCById(npc.id);
+          if (this._item) this._item.health = -100; // Умер от старости
         }
       });
   }

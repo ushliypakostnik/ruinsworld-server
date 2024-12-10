@@ -16,6 +16,8 @@ import {
   IShot,
   IExplosion,
   ILocationUnits,
+  IUseMessage,
+  ISendMessage,
 } from '../models/api';
 
 // Constants
@@ -28,9 +30,9 @@ import Game from '../services/game/game';
 import Helper from './utils/helper';
 
 @WebSocketGateway({
-  cors: {
+  /* cors: {
     credentials: true, // TODO!!! For development!!!
-  },
+  }, */
   allowEIO3: true,
 })
 export default class Gateway
@@ -60,17 +62,31 @@ export default class Gateway
   // Пульнуть всем стейт игры по локациям
   getGameUpdates(): void {
     if (this.server) {
-      this._locations = this.game.world.array.filter(
-        (location) => location.users.length > 0,
-      );
-      this._locations.forEach((location: ILocationUnits) => {
-        this.server
-          .to(location.id)
-          .emit(
-            Messages.updateToClients,
-            this.game.getGameUpdates(location.id),
-          );
-      });
+      ////////////////////////////////////////////////////////////////////////////////////////
+      // Тестировние нагрузки!!!
+      ////////////////////////////////////////////////////////////////////////////////////////
+      if (Number(process.env.FULL_TEST) === 0) {
+        this._locations = this.game.world.array.filter(
+          (location) => location.users.length > 0,
+        );
+        this._locations.forEach((location: ILocationUnits) => {
+          this.server
+            .to(location.id)
+            .emit(
+              Messages.updateToClients,
+              this.game.getGameUpdates(location.id),
+            );
+        });
+      } else {
+        this.game.world.array.forEach((location: ILocationUnits) => {
+          this.server
+            .to(location.id)
+            .emit(
+              Messages.updateToClients,
+              this.game.getGameUpdates(location.id),
+            );
+        });
+      }
     }
   }
 
@@ -98,14 +114,14 @@ export default class Gateway
     ) {
       // Если пришел айди или пришел, но неправильный
       client.join(this.ZERO_ROOM);
-      console.log('Gateway - подключаем "в тамбур"!');
+      // console.log('Gateway - подключаем "в тамбур"!');
       client.emit(Messages.newPlayer);
     } else {
       // Вспоминаем игрока
       player = this.game.updatePlayer(message.id as string);
       client.join(player.location);
       client.emit(Messages.onUpdatePlayer, player);
-      console.log('Gateway Этот игрок уже был!', player);
+      // console.log('Gateway Этот игрок уже был!', player);
     }
   }
 
@@ -152,7 +168,6 @@ export default class Gateway
   @SubscribeMessage(Messages.explosion)
   async explosion(client, message: IExplosion): Promise<void> {
     // console.log('Gateway explosion!!!', message);
-    this.game.onUnshotExplosion(message.id); // Удаляем выстрел
     this.server
       .to(message.location)
       .emit(Messages.onExplosion, this.game.onExplosion(message));
@@ -186,7 +201,12 @@ export default class Gateway
   @SubscribeMessage(Messages.point)
   async onPoint(client, message: IPointMessage): Promise<void> {
     // console.log('Gateway onPoint!!!', message);
-    this.game.onPoint(message);
+    this.server
+      .to(message.location)
+      .emit(Messages.onPoint, {
+        id: message.id,
+        exp: this.game.onPoint(message),
+      });
   }
 
   // Игрок подобрал что-то
@@ -196,7 +216,7 @@ export default class Gateway
     this.server
       .to(message.location)
       .emit(Messages.onPick, {
-        uuid: message.uuid,
+        ...message,
         exp: this.game.onPick(message),
       });
   }
@@ -206,5 +226,25 @@ export default class Gateway
   async onUserDead(client, message: IMessage): Promise<void> {
     // console.log('Gateway onUserDead!!!', message);
     this.game.onUserDead(message);
+  }
+
+  // Игрок использовал предмет
+  @SubscribeMessage(Messages.use)
+  async onUse(client, message: IUseMessage): Promise<void> {
+    // console.log('Gateway onUse!!!', message);
+    this.server
+      .to(message.location)
+      .emit(Messages.onUse, this.game.onUse(message));
+  }
+
+  // Игрок отправил сообщение в чат
+  @SubscribeMessage(Messages.send)
+  async onSend(client, message: ISendMessage): Promise<void> {
+    // console.log('Gateway onSend!!!', message);
+    this.game.world.array.forEach((location: ILocationUnits) => {
+      this.server
+        .to(location.id)
+        .emit(Messages.onSend, message);
+    });
   }
 }

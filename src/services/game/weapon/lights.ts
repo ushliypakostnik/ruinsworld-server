@@ -57,6 +57,7 @@ export default class Lights {
     this.list.push({
       id: this.counter,
       race: message.unit.race,
+      exp: message.unit.exp,
       target: message.target,
       location: self.units[message.unit.id],
       positionX: message.unit.positionX,
@@ -130,6 +131,7 @@ export default class Lights {
             self.emiiter.emit(EmitterEvents.npcShotHit, {
               id: light.target,
               race: light.race,
+              exp: light.exp,
               value: this._position.distanceTo(
                 new THREE.Vector3(
                   self.scene[light.target].position.x,

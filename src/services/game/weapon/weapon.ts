@@ -23,7 +23,10 @@ export default class Weapon {
     return this.shots.onShot(message);
   }
 
-  public onNPCShot(self: ISelf, message: { unit: IUnit, target: THREE.Vector3 }): void {
+  public onNPCShot(
+    self: ISelf,
+    message: { unit: IUnit; target: THREE.Vector3 },
+  ): void {
     this.lights.onNPCShot(self, message);
   }
 
@@ -31,7 +34,7 @@ export default class Weapon {
     return this.shots.onUnshot(message);
   }
 
-  public onUnshotExplosion(message: number): void {
+  public onExplosion(message: number): void {
     this.shots.onUnshotExplosion(message);
   }
 

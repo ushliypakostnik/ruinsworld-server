@@ -14,7 +14,7 @@ export default class Points {
   }
 
   // При инициализации учитываем "родные локации игровых рас" на которых нельзя менять флаг
-  public init(locations: {id: string, isHuman: boolean, isReptiloid: boolean}[]) {
+  public init(locations: any) {
     locations.forEach((location) => {
       if (location.isHuman) this.obj[`${location.id}`] = { status: Races.human };
       else if (location.isReptiloid) this.obj[`${location.id}`] = { status: Races.reptiloid };
@@ -24,6 +24,6 @@ export default class Points {
 
   // На смену флага на локации
   public onPoint(message: IPointMessage): void {
-    this.obj[`${message.id}`] = { status: message.race };
+    this.obj[`${message.location}`] = { status: message.race };
   }
 }

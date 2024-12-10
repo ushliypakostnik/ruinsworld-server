@@ -1,4 +1,4 @@
-import type { Lifecycle, Races, Pick } from './gameplay';
+import type { Lifecycle, Races, Picks, Things } from './gameplay';
 
 // Websockets messages
 export enum Messages {
@@ -27,9 +27,14 @@ export enum Messages {
   onRelocation = 'onRelocation', // На переход на другую локацию
   location = 'location', // Игрок загрузился на локации
   point = 'point', // Смена флага на контрольной точке
+  onPoint = 'onPoint', // На смену флага на контрольной точке
   pick = 'pick', // Пользователь подобрал что-то
   onPick = 'onPick', // На подбирание что-то
   userDead = 'userDead', // Игрок умер
+  use = 'use', // Игрок использовал предмет
+  onUse = 'onUse', // На использовал предмет
+  send = 'send', // Пришло сообщение в чат
+  onSend = 'onSend', // На сообщение в чат
 }
 
 // Движущийся объект
@@ -63,6 +68,7 @@ export interface IExplosion extends IShot {
 export interface ILight extends IMoveObject {
   id: number | null;
   race: Races,
+  exp: number,
   target: string;
   location: string;
   startX: number;
@@ -100,11 +106,17 @@ export interface IUnit extends IMoveObject {
 export interface IUnitBack {
   id: string;
   start: number | null;
+  time: number | null;
 }
 
-// Провел в игре: time - unix) / 60
-export interface IUserBack extends IUnitBack {
-  time: number | null;
+interface IUnitStore extends IUnitBack {
+  race: Races;
+  name: string;
+  exp: number;
+}
+
+export interface IUnitsStore {
+  [key: string]: IUnitStore[];
 }
 
 // Обновления игрока
@@ -120,10 +132,21 @@ export interface IMessage {
 }
 
 export interface IPickMessage extends IMessage {
-  type: Pick;
+  type: Picks;
   uuid: string;
-  text: string;
+  target: Races | Things;
   user: string;
+}
+
+export interface IUseMessage {
+  user: string;
+  thing: Things;
+  location: string;
+}
+
+export interface IOnUseMessage extends IUseMessage {
+  exp: number;
+  health: number;
 }
 
 export interface IWeaponModule {
@@ -135,6 +158,7 @@ export interface IGameUpdates {
   users: IUnit[];
   npc: IUnit[],
   weapon: IWeaponModule;
+  things: IThing[];
 }
 
 // Мир
@@ -154,6 +178,11 @@ export interface ITree extends IPosition {
   rotateZ: number;
 }
 
+export interface IWell extends IPosition {
+  rotate: number;
+}
+
+
 export interface IStone extends IPosition {
   scaleX: number;
   scaleY: number;
@@ -161,8 +190,17 @@ export interface IStone extends IPosition {
   rotateY: number;
 }
 
-export interface IStone2 extends IStone {
-  model: number;
+export interface IStone2 extends IPosition {
+  scale: number;
+  rotateY: number;
+  rotateX: number;
+}
+
+export interface IPin extends IPosition {
+  scale: number;
+  rotateY: number;
+  rotateX: number;
+  color: number;
 }
 
 export interface IBuild extends IPosition {
@@ -179,6 +217,28 @@ export interface IGrass {
   scale: number;
 }
 
+export interface IZone {
+  x: number;
+  z: number;
+  radius: number;
+}
+
+export interface ITrash {
+  x: number;
+  z: number;
+  scale: number;
+  scaleY: number;
+  rotate: number;
+}
+
+export interface IThing extends IPosition {
+  id: string;
+  type: Things;
+  rotateY: number;
+  rotateX: number;
+  y: number;
+}
+
 export interface ILocation {
   id: string;
   x: number;
@@ -188,14 +248,20 @@ export interface ILocation {
 export interface ILocationUnits extends ILocation {
   users: string[];
   npc: string[];
+  things: string[];
 }
 
 export interface ILocationWorld extends ILocation {
   name: string;
   ground: string;
   trees: ITree[];
-  stones: IStone[];
-  // stones2: IStone[];
+  zones: IZone[];
+  trashes: ITrash[];
+  stones1: IStone[];
+  stones2: IStone[];
+  stones3: IStone[];
+  stones4: IStone2[];
+  stones5: IStone2[];
   builds: IBuild[];
 }
 
@@ -238,4 +304,12 @@ export interface IMapUnit {
 export interface IPointMessage {
   id: string;
   race: Races.human | Races.reptiloid;
+  location: string;
+}
+
+export interface ISendMessage {
+  name: string;
+  race: Races;
+  location: string;
+  text: string;
 }

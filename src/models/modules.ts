@@ -20,7 +20,7 @@ export interface ISelf {
   // Objects
   scene: { [key: string]: Mesh }; // хранилище коробок
   unitsByLocations: IUnitsByLocations; // данные о юнитах по локациям
-  units: { [key: string]: string }; // сопоставление - пользователь/локация
+  units: { [key: string]: string }; // сопоставление - юнит/локация
 
   // Math
   octrees: Octrees; // модели локаций
@@ -30,6 +30,8 @@ export interface ISelf {
 export enum EmitterEvents {
   addNPC = 'addNPC',
   removeNPC = 'removeNPC',
+  addThing = 'addThing',
+  removeThing = 'Thing',
   playerKick = 'playerKick',
   npcShot = 'npcShot',
   npcShotHit = 'npcShotHit',
@@ -54,6 +56,7 @@ export interface IUnitCollider {
   bendTimer: number;
   bendTimerLimit: number;
   timer: number;
+  timerNoHit: number;
   timerNo: number;
   timerNoLimit: number;
   octree: Octree;
@@ -64,4 +67,10 @@ export interface IUnitCollider {
 
 export interface IUnitColliders {
   [key: string]: IUnitCollider;
+}
+
+export enum Fields {
+  users = 'users',
+  npc = 'npc',
+  things = 'things',
 }

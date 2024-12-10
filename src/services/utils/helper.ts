@@ -5,7 +5,7 @@ import { randomBytes } from 'crypto';
 import { IPosition } from '../../models/api';
 
 // Constants
-import { Races, RacesConfig } from '../../models/gameplay';
+import { Races, Damages, RacesConfig } from '../../models/gameplay';
 
 @Injectable()
 export default class Helper {
@@ -41,7 +41,7 @@ export default class Helper {
 
   static radiansToDegrees = (radians: number) => {
     return radians * (180 / Math.PI);
-  }
+  };
 
   static damping(delta: number): number {
     return Math.exp(-3 * delta) - 1;
@@ -51,14 +51,17 @@ export default class Helper {
     centerX: number,
     centerZ: number,
     radius: number,
-    isSafeCenter: boolean,
+    center: number,
   ): IPosition {
-    this._number = isSafeCenter ? 30 : 10;
     this._number1 = this._plusOrMinus();
     this._number2 = this._plusOrMinus();
     return {
-      x: Math.round(centerX + Math.random() * this._number1 * radius) + this._number * this._number1,
-      z: Math.round(centerZ + Math.random() * this._number2 * radius) + this._number * this._number2,
+      x:
+        Math.round(centerX + Math.random() * this._number1 * radius) +
+        center * this._number1,
+      z:
+        Math.round(centerZ + Math.random() * this._number2 * radius) +
+        center * this._number2,
     };
   }
 
@@ -79,16 +82,16 @@ export default class Helper {
     centerZ: number,
     distance: number,
     radius: number,
-    isSafeCenter: boolean,
+    center: number,
   ): IPosition {
     let position: IPosition = this.getRandomPosition(
       centerX,
       centerZ,
       radius,
-      isSafeCenter,
+      center,
     );
     while (this._isBadPosition(positions, position, distance)) {
-      position = this.getRandomPosition(centerX, centerZ, radius, isSafeCenter);
+      position = this.getRandomPosition(centerX, centerZ, radius, center);
     }
     return position;
   }
@@ -118,51 +121,85 @@ export default class Helper {
 
   // Gameplay
 
+  static staticGetNPCCoef(exp: number): number {
+    return (1 + exp / Number(process.env.EXP_COEF_NPC));
+  }
+
+  static staticGetUserCoef(exp: number): number {
+    return (1 + exp / Number(process.env.EXP_COEF_USER));
+  }
+
+  private _getNPCCoef(exp: number): number {
+    return (1 + exp / Number(process.env.EXP_COEF_NPC));
+  }
+
+  private _getUserCoef(exp: number): number {
+    return (1 + exp / Number(process.env.EXP_COEF_USER));
+  }
+
   public getDamage(
-    type: 'kick' | 'light' | 'shot',
+    type: Damages,
     from: Races | null,
     to: Races | null,
     distance: number | null,
     isExact: boolean,
     isHide: boolean,
+    expFrom: number,
+    expTo: number,
   ): number {
     this._number = Number(process.env.DAMAGE);
 
     switch (type) {
-      case 'kick':
+      case Damages.kick:
         this._number *= Number(process.env.KICK_DAMAGE_COEF);
-        this._number *= RacesConfig[from].kick * Math.random() / 4 + 0.825;
+        this._number *= (RacesConfig[from].kick * Math.random()) / 4 + 0.825;
         break;
-      case 'light':
+      case Damages.light:
         this._number *= Number(process.env.LIGHT_DAMAGE_COEF);
         this._number *= RacesConfig[from].attack;
-        this._number *= (1 / distance);
+        this._number *= 1 / distance;
         break;
-      case 'shot':
+      case Damages.shot:
         this._number *= Number(process.env.SHOT_DAMAGE_COEF);
-        this._number *= (1 / distance);
+        this._number *= 1 / distance;
         if (isExact) this._number *= Number(process.env.EXACT_DAMAGE_COEF);
         break;
     }
 
-    if (!to || to === Races.human || to === Races.reptiloid) {
+    // Скрытый режим игроков и балансировка игроки/неписи
+    if (to === Races.human || to === Races.reptiloid) {
       if (isHide) this._number *= 0.5;
       this._number *= Number(process.env.PLAYERS_DAMAGE_COEF);
 
       switch (type) {
-        case 'kick':
+        case Damages.kick:
           this._number *= Number(process.env.KICK_PLAYERS_DAMAGE_COEF);
           break;
-        case 'light':
+        case Damages.light:
           this._number *= Number(process.env.LIGHT_PLAYERS_DAMAGE_COEF);
           break;
       }
     }
 
-    if (to) this._number /= RacesConfig[to].armor;
-    
-    // console.log('Helper getDamage: ', type, from, to, isExact, isHide, this._number);
-    
+    // Влияние опыта
+
+    // Защита
+    if (expTo) {
+      if (to === Races.human || to === Races.reptiloid)
+        this._number /= RacesConfig[to].armor * this._getUserCoef(expTo);
+      else this._number /= RacesConfig[to].armor * this._getNPCCoef(expTo);
+    } else this._number /= RacesConfig[to].armor;
+
+    // Урон
+    if (expFrom) {
+      if (from === Races.human || from === Races.reptiloid)
+        this._number *= this._getUserCoef(expFrom);
+      else this._number *= this._getNPCCoef(expFrom);
+    }
+
+    // if (to === Races.human || to === Races.reptiloid)
+      // console.log('Helper getDamage: ', this._number, ' : ', type, ' / ', from, to, ' / ', expFrom, expTo);
+
     return this._number;
   }
 }

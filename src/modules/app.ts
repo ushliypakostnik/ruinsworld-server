@@ -18,6 +18,6 @@ import Gateway from '../services/gateway';
 })
 export class App {
   constructor() {
-    // ssconsole.log('App constructor()', this);
+    // console.log('App constructor()', this);
   }
 }
