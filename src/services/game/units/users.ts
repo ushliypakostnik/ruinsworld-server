@@ -15,7 +15,7 @@ import {
   IPointMessage,
   IUseMessage,
   IOnUseMessage,
-  IUnitsStore,
+  IUnitStore,
 } from '../../../models/api';
 
 // Modules
@@ -38,10 +38,10 @@ import {
 export default class Users {
   public list: Unit[];
   public listBack: IUnitBack[];
-  public listStore: IUnitsStore;
   public listInfo: IUnitInfo[];
   public counter = 0;
 
+  private _listStore: IUnitStore[];
   private _updates!: IUpdateMessage[];
   private _item!: Unit;
   private _itemBack!: IUnitBack;
@@ -76,7 +76,7 @@ export default class Users {
     this.list = [];
     this.listBack = [];
     this.listInfo = [];
-    this.listStore = {};
+    this._listStore = [];
     this._helper = new Helper();
   }
 
@@ -165,23 +165,12 @@ export default class Users {
       this._itemBack = this._getUserBackById(id as string);
       if (this._itemBack) {
         // Сохраняем пользователя для статистики
-        if (Helper.isHasProperty(this.listStore, this._item.id)) {
-          this.listStore[this._item.id].push({
-            ...this._itemBack,
-            name: this._item.name,
-            race: this._item.race,
-            exp: this._item.exp,
-          });
-        } else {
-          this.listStore[this._item.id] = [
-            {
-              ...this._itemBack,
-              name: this._item.name,
-              race: this._item.race,
-              exp: this._item.exp,
-            },
-          ];
-        }
+        this._listStore.push({
+          ...this._itemBack,
+          name: this._item.name,
+          race: this._item.race,
+          exp: this._item.exp,
+        });
       }
 
       if (self.scene[id]) delete self.scene[id];

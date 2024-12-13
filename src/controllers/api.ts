@@ -2,7 +2,7 @@
 import { Controller, Get, Param, HttpCode, Inject } from '@nestjs/common';
 
 // Types
-import type { ILocation, IMapUnit, IUnitsStore } from '../models/api';
+import type { ILocation, IMapUnit } from '../models/api';
 
 // Constants
 import { RacesConfigAPI, ThingsConfig } from '../models/gameplay';

@@ -180,10 +180,11 @@ export default class NPC {
     this.listBack.push({
       id: this._item.id,
       start: this._number,
-      time:
+      time: Helper.randomInteger(0, Number(process.env.NPC_LIVE_TIME) * 2),
+      /*
         this._string === Races.bidens
           ? Helper.randomInteger(0, Number(process.env.NPC_LIVE_TIME)) // Байденсы живут немного поменьше
-          : Helper.randomInteger(0, Number(process.env.NPC_LIVE_TIME) * 2),
+          : Helper.randomInteger(0, Number(process.env.NPC_LIVE_TIME) * 2), */
     });
 
     if (id) {
@@ -782,13 +783,20 @@ export default class NPC {
                 );
                 this._v1.y = 0;
                 this._v2.y = 0;
+                this._number =
+                  unit.race === Races.zombie ||
+                  unit.race === Races.soldier ||
+                  unit.race === Races.cyborg
+                    ? 1.5
+                    : 1.1;
+                /////////////////////////////////////////////////////////////////////
                 if (
                   !collider.isKick &&
                   !collider.isBackward &&
                   collider.target.length &&
                   this._v1.distanceTo(this._v2) <
                     this._getAttackDistance(self, unit.race, collider.target) *
-                      1.1
+                      this._number
                 ) {
                   // console.log('Хочу пнуть!!!', collider.target, self.scene[collider.target].position.distanceTo(self.scene[unit.id].position));
                   this._setKick(collider);
@@ -960,7 +968,7 @@ export default class NPC {
     ) {
       // console.log('Откатываюсь!!!');
       collider.isBackward = true;
-      collider.backwardTimer = Math.random() + 0.4;
+      collider.backwardTimer = Math.random() + 0.5;
     }
     if (
       collider.timer >

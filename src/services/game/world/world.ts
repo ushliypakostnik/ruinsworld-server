@@ -20,7 +20,8 @@ import type {
   IPin,
   IUpdateMessage,
 } from '../../../models/api';
-import type { ISelf } from '../../../models/modules';
+import type { TRayResult } from '../../../models/utils';
+import type { ISelf, Octrees } from '../../../models/modules';
 import { Fields } from '../../../models/modules';
 
 // Constants
@@ -33,7 +34,7 @@ import {
   TRASHES_GENERATION,
 } from './config';
 import { EmitterEvents } from '../../../models/modules';
-import { Moves } from '../../../models/gameplay';
+import { Moves, Things as ThingsEnum } from '../../../models/gameplay';
 
 // Utils
 import Octree from '../../math/octree';
@@ -65,11 +66,17 @@ export default class World {
   private _grasses: IGrass[];
   private _zones: IZone[];
   private _trashes: ITrash[];
+  private _trashes2: ITrash[];
   private _SIZE = Number(process.env.WORLD); // количество "слоев" вокруг центральной локации
   private _helper: Helper;
   private _group: THREE.Group;
+  private _group2: THREE.Group;
   private _mesh: THREE.Mesh;
+  private _meshClone: THREE.Mesh;
   private _pseudo: THREE.Mesh;
+  private _ray!: THREE.Ray;
+  private _result!: TRayResult;
+  private _octrees: Octrees;
 
   private _id: string;
   private _num1: number;
@@ -81,7 +88,33 @@ export default class World {
     this.locations = {};
     this.design = {};
     this.array = [];
+    this._octrees = {};
     const alpha = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
+
+    // Очень далекие горы
+    this._stones2 = [];
+    this._number = Helper.randomInteger(5, 7);
+    this._positions = [];
+    for (let n = 0; n < this._number + this._number; ++n) {
+      this._position = this._helper.getUniqueRandomPosition(
+        this._positions,
+        0,
+        0,
+        50,
+        (process.env.SIZE as unknown as number) * 0.95,
+        (process.env.SIZE as unknown as number) * 0.9,
+      );
+
+      this._positions.push(this._position);
+      this._num1 = (Math.random() + 1) * Helper.randomInteger(10, 30);
+      this._stones2.push({
+        ...this._position,
+        scaleX: this._num1,
+        scaleY: this._num1 * (Math.random() + 1.5),
+        scaleZ: this._num1,
+        rotateY: Helper.randomInteger(0, 360),
+      });
+    }
 
     for (let x = 0; x < this._SIZE * 2 + 1; ++x) {
       for (let y = 0; y < this._SIZE * 2 + 1; ++y) {
@@ -97,6 +130,32 @@ export default class World {
 
         config.index = `${alpha[x]}/${y + 1}`;
 
+        // Далекие горы
+        this._stones1 = [];
+        this._number = Helper.randomInteger(5, 9);
+        this._positions = [];
+        for (let n = 0; n < this._number + this._number; ++n) {
+          this._position = this._helper.getUniqueRandomPosition(
+            this._positions,
+            0,
+            0,
+            40,
+            (process.env.SIZE as unknown as number) * 0.8,
+            (process.env.SIZE as unknown as number) * 0.65,
+          );
+
+          this._positions.push(this._position);
+          this._num1 = (Math.random() + 1) * Helper.randomInteger(2, 9);
+          this._stones1.push({
+            ...this._position,
+            scaleX: this._num1,
+            scaleY: this._num1 * (Math.random() + 1.5),
+            scaleZ: this._num1,
+            rotateY: Helper.randomInteger(0, 360),
+          });
+        }
+
+        // Здания
         this._builds = [];
         if (
           x >= this._SIZE - 2 &&
@@ -144,62 +203,12 @@ export default class World {
           }
         }
 
-        // Далекие горы
-        this._stones1 = [];
-        this._number = Helper.randomInteger(3, 6);
-        this._positions = [];
-        for (let n = 0; n < this._number + this._number; ++n) {
-          this._position = this._helper.getUniqueRandomPosition(
-            this._positions,
-            0,
-            0,
-            40,
-            (process.env.SIZE as unknown as number) * 0.8,
-            (process.env.SIZE as unknown as number) * 0.65,
-          );
-
-          this._positions.push(this._position);
-          this._num1 = (Math.random() + 1) * Helper.randomInteger(2, 9);
-          this._stones1.push({
-            ...this._position,
-            scaleX: this._num1,
-            scaleY: this._num1 * (Math.random() + 1.5),
-            scaleZ: this._num1,
-            rotateY: Helper.randomInteger(0, 360),
-          });
-        }
-
-        // Очень далекие горы
-        this._stones2 = [];
-        this._number = Helper.randomInteger(2, 4);
-        this._positions = [];
-        for (let n = 0; n < this._number + this._number; ++n) {
-          this._position = this._helper.getUniqueRandomPosition(
-            this._positions,
-            0,
-            0,
-            50,
-            (process.env.SIZE as unknown as number) * 0.95,
-            (process.env.SIZE as unknown as number) * 0.9,
-          );
-
-          this._positions.push(this._position);
-          this._num1 = (Math.random() + 1) * Helper.randomInteger(10, 30);
-          this._stones2.push({
-            ...this._position,
-            scaleX: this._num1,
-            scaleY: this._num1 * (Math.random() + 1.5),
-            scaleZ: this._num1,
-            rotateY: Helper.randomInteger(0, 360),
-          });
-        }
-
         // Столбы
         this._stones3 = [];
         this._number2 = STONES_GENERATION[y][x];
         this._number = Helper.randomInteger(
-          Math.round(this._number2 * 4),
-          Math.round(this._number2 * 8),
+          Math.round(this._number2 * 3),
+          Math.round(this._number2 * 6),
         );
         this._positions = [];
         for (let n = 0; n < this._number; ++n) {
@@ -211,14 +220,23 @@ export default class World {
             (process.env.SIZE as unknown as number) * 0.5,
             30,
           );
-
           this._positions.push(this._position);
-          this._num1 = Math.random() * this._number2 + 2;
+
+          if (Helper.yesOrNo()) {
+            this._num1 =
+              (Math.random() + 1) * this._number2 * Helper.randomInteger(1, 5);
+            this._num2 = 0.5;
+          } else {
+            this._num2 =
+              (Math.random() + 1) * this._number2 +
+              2 * Helper.randomInteger(1, 5);
+            this._num1 = 0.5;
+          }
           this._stones3.push({
             ...this._position,
             scaleX: this._num1,
-            scaleY: this._num1 * (Math.random() + 0.5),
-            scaleZ: this._num1,
+            scaleY: (Math.random() + 1) * this._number2 * 2,
+            scaleZ: this._num2,
             rotateY: Helper.randomInteger(0, 360),
           });
         }
@@ -239,6 +257,7 @@ export default class World {
           this._positions.push(this._position);
           this._stones4.push({
             ...this._position,
+            y: 0,
             scale: Math.random() / 2 + 0.1,
             rotateY: Helper.randomInteger(0, 360),
             rotateX: Helper.randomInteger(15, 15),
@@ -261,7 +280,8 @@ export default class World {
           this._positions.push(this._position);
           this._stones5.push({
             ...this._position,
-            scale: (Math.random() + 0.6) * 2,
+            y: 0,
+            scale: (Math.random() + 0.6) * 4,
             rotateY: Helper.randomInteger(0, 360),
             rotateX: Helper.randomInteger(15, 15),
             color: Helper.randomInteger(1, 3),
@@ -271,7 +291,7 @@ export default class World {
         // Деревья
         this._trees = [];
         this._positions = [];
-        this._number2 = GREEN_GENERATION[y][x];
+        this._number2 = GREEN_GENERATION[y][x] / 1.5;
         this._number = Helper.randomInteger(
           this._number2,
           Math.round(1.5 * this._number2),
@@ -285,13 +305,13 @@ export default class World {
             (process.env.SIZE as unknown as number) * 0.65,
             30,
           );
-          
+
           this._positions.push(this._position);
           this._trees.push({
             ...this._position,
             scale: Helper.randomInteger(
               this._number2,
-              Math.round(3 * this._number2),
+              Math.round(2 * this._number2),
             ),
             rotateX: Helper.randomInteger(-1, 15),
             rotateY: Helper.randomInteger(0, 360),
@@ -302,7 +322,7 @@ export default class World {
         // Кусты
         this._grasses = [];
         this._positions = [];
-        this._number2 = GREEN_GENERATION[y][x] / 2;
+        this._number2 = GREEN_GENERATION[y][x];
         this._number = Helper.randomInteger(
           Math.round(0.5 * this._number2),
           Math.round(3 * this._number2),
@@ -312,7 +332,7 @@ export default class World {
             this._positions,
             0,
             0,
-            20,
+            10,
             (process.env.SIZE as unknown as number) * 0.6,
             30,
           );
@@ -332,7 +352,7 @@ export default class World {
             this._positions,
             0,
             0,
-            50,
+            40,
             (process.env.SIZE as unknown as number) * 0.35,
             60,
           );
@@ -356,15 +376,41 @@ export default class World {
             this._positions,
             0,
             0,
-            30,
-            (process.env.SIZE as unknown as number) * 0.35,
-            50,
+            25,
+            (process.env.SIZE as unknown as number) * 0.3,
+            40,
           );
           this._positions.push(this._position);
           this._trashes.push({
             ...this._position,
-            scale: Helper.randomInteger(25, 75) * (Math.random() + 1),
+            scale: Helper.randomInteger(15, 45) * (Math.random() + 1),
             scaleY: (Math.random() + 1) * 2,
+            rotate: Helper.randomInteger(0, 360),
+          });
+        }
+
+        // Горки
+        this._trashes2 = [];
+        this._positions = [];
+        this._number2 = TRASHES_GENERATION[y][x];
+        this._number = Helper.randomInteger(
+          Math.round(1.5 * (this._number2 + Math.random())),
+          Math.round(2.5 * (this._number2 + Math.random())),
+        );
+        for (let n = 0; n < this._number; ++n) {
+          this._position = this._helper.getUniqueRandomPosition(
+            this._positions,
+            0,
+            0,
+            25,
+            (process.env.SIZE as unknown as number) * 0.3,
+            40,
+          );
+          this._positions.push(this._position);
+          this._trashes2.push({
+            ...this._position,
+            scale: Helper.randomInteger(25, 75) * (Math.random() + 1),
+            scaleY: (Math.random() + 1) * 2.5,
             rotate: Helper.randomInteger(0, 360),
           });
         }
@@ -372,19 +418,20 @@ export default class World {
         // Колодцы
         this._wells = [];
         // this._positions = []; !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        this._number = Helper.randomInteger(1, 3);
+        this._number = Helper.randomInteger(2, 4);
         for (let n = 0; n < this._number; ++n) {
           this._position = this._helper.getUniqueRandomPosition(
             this._positions,
             0,
             0,
-            75,
-            (process.env.SIZE as unknown as number) * 0.4,
-            50,
+            40,
+            (process.env.SIZE as unknown as number) * 0.33,
+            40,
           );
           this._positions.push(this._position);
           this._wells.push({
             ...this._position,
+            y: 0,
             rotate: Helper.randomInteger(0, 360),
           });
         }
@@ -412,6 +459,7 @@ export default class World {
           grasses: this._grasses,
           zones: this._zones,
           trashes: this._trashes,
+          trashes2: this._trashes2,
           builds: this._builds,
           wells: this._wells,
         };
@@ -432,8 +480,13 @@ export default class World {
         new THREE.MeshBasicMaterial(),
       );
       this._mesh.position.y = -2.5;
+      this._meshClone = this._mesh.clone();
+
       this._group = new THREE.Group();
       this._group.add(this._mesh);
+
+      this._group2 = new THREE.Group();
+      this._group2.add(this._meshClone);
 
       // Respauns
       this._mesh = new THREE.Mesh(
@@ -442,39 +495,55 @@ export default class World {
       this._mesh.position.set(0, -2.5, 0);
       this._group.add(this._mesh);
 
-      // Столбы
+      // Деревья
       this._pseudo = new THREE.Mesh(
         new THREE.BoxGeometry(1, 3, 1),
         new THREE.MeshBasicMaterial(),
       );
+      this.design[location.id].trees.forEach((tree) => {
+        this._mesh = this._pseudo.clone();
+        this._mesh.position.set(tree.x, tree.scale / -5 - 2, tree.z);
+        this._mesh.scale.set(
+          tree.scale / 2,
+          3,
+          tree.scale * 2.5,
+          tree.scale / 2.3,
+        );
+        this._mesh.rotateX(Helper.degreesToRadians(tree.rotateX));
+        this._mesh.rotateY(Helper.degreesToRadians(tree.rotateY));
+        this._mesh.rotateZ(Helper.degreesToRadians(tree.rotateZ));
+        this._group.add(this._mesh);
+      });
+
+      // Стены
+      this._pseudo = new THREE.Mesh(
+        new THREE.BoxGeometry(1, 1, 1),
+        new THREE.MeshBasicMaterial(),
+      );
       this.design[location.id].stones3.forEach((stone) => {
         this._mesh = this._pseudo.clone();
-        this._mesh.position.set(stone.x, stone.scaleY / -2 - 2.5, stone.z);
-        this._mesh.scale.set(
-          stone.scaleX * 1.3,
-          stone.scaleY * 1.8,
-          stone.scaleZ * 1.3,
-        );
+        this._mesh.position.set(stone.x, stone.scaleY / -2, stone.z);
+        this._mesh.scale.set(stone.scaleX, stone.scaleY, stone.scaleZ);
         this._mesh.rotateY(Helper.degreesToRadians(stone.rotateY));
         this._group.add(this._mesh);
       });
 
-      // Помойки
+      // Помойки и горки
       this._pseudo = new THREE.Mesh(
         new THREE.ConeGeometry(1, 8),
         new THREE.MeshBasicMaterial(),
       );
-      this.design[location.id].trashes.forEach((trash) => {
-        this._mesh = this._pseudo.clone();
-        this._mesh.position.set(trash.x, trash.scaleY / -2 - 2, trash.z);
-        this._mesh.scale.set(
-          trash.scale,
-          trash.scaleY,
-          trash.scale,
-        );
-        this._mesh.rotateY(Helper.degreesToRadians(trash.rotate));
-        this._group.add(this._mesh);
-      });
+      this.design[location.id].trashes
+        .concat(this.design[location.id].trashes2)
+        .forEach((trash) => {
+          this._mesh = this._pseudo.clone();
+          this._mesh.position.set(trash.x, trash.scaleY / -2 - 2, trash.z);
+          this._mesh.scale.set(trash.scale, trash.scaleY, trash.scale);
+          this._mesh.rotateY(Helper.degreesToRadians(trash.rotate));
+          this._meshClone = this._mesh.clone();
+          this._group.add(this._mesh);
+          this._group2.add(this._meshClone);
+        });
 
       // Добавляем строения
       this.design[location.id].builds.forEach((build) => {
@@ -495,6 +564,40 @@ export default class World {
 
       self.octrees[location.id] = new Octree();
       self.octrees[location.id].fromGraphNode(this._group);
+
+      this._octrees[location.id] = new Octree();
+      this._octrees[location.id].fromGraphNode(this._group2);
+
+      // Улучшаем позиции камешков и железяк
+      this.design[location.id].stones4.forEach((stone) => {
+        this._ray = new THREE.Ray(
+          new THREE.Vector3(stone.x, 50, stone.z),
+          new THREE.Vector3(0, -60, 0),
+        );
+        this._result = this._octrees[location.id].rayIntersect(this._ray);
+        if (this._result) {
+          if (this._result.position.y > -2)
+            stone.y = this._result.position.y + 1.6;
+          else stone.y = -0.25;
+        }
+      });
+      this.design[location.id].stones5.forEach((pin) => {
+        this._ray = new THREE.Ray(
+          new THREE.Vector3(pin.x, 50, pin.z),
+          new THREE.Vector3(0, -60, 0),
+        );
+        this._result = this._octrees[location.id].rayIntersect(this._ray);
+        if (this._result) pin.y = this._result.position.y + 1.5;
+      });
+
+      this.design[location.id].wells.forEach((well) => {
+        this._ray = new THREE.Ray(
+          new THREE.Vector3(well.x, 50, well.z),
+          new THREE.Vector3(0, -60, 0),
+        );
+        this._result = this._octrees[location.id].rayIntersect(this._ray);
+        if (this._result) well.y = this._result.position.y + 2;
+      });
     });
 
     // addNPC event subscribe
@@ -529,13 +632,44 @@ export default class World {
           Helper.staticPlusOrMinus();
       }
       this._id = this.getLocationIdByCoords(this._num1, this._num2);
-      // console.log('World addThing', this._num1, this._num2, this._id);
+
+      // Знаем локацию - тыкаем в модель сцены
+      /////////////////////////////////////////////////////////////////////
+      // Внимание!!! Максимальная высота холмов сейчас 8 * 5!!!
+      this._ray = new THREE.Ray(
+        new THREE.Vector3(thing.x, thing.y + 50, thing.z),
+        new THREE.Vector3(0, -60, 0),
+      );
+      this._result = this._octrees[this._id].rayIntersect(this._ray);
+      if (this._result) {
+        // console.log(thing.id, this._result.position.y);
+        this._number =
+          thing.type === ThingsEnum.go
+            ? this._result.position.y > -2
+              ? 2.1
+              : 2
+            : thing.type === ThingsEnum.vodka
+            ? this._result.position.y > -2
+              ? 1.8
+              : 1.9
+            : 1.9;
+        self.emiiter.emit(EmitterEvents.onAddThing, {
+          id: thing.id,
+          y:
+            this._result.position.y > -2
+              ? thing.y + this._result.position.y + this._number
+              : thing.y,
+        });
+      }
+
+      // console.log('World addThing', this._result);
+
       this._addUnitOnLocation(self, thing.id, this._id, Fields.things);
     });
   }
 
   public setNewPlayer(self: ISelf, id: string, location: string): void {
-    // console.log('World setNewPlayer', id);
+    // console.log('World setNew Player', id);
     this._addUnitOnLocation(self, id, location, Fields.users);
   }
 

@@ -30,9 +30,10 @@ import Game from '../services/game/game';
 import Helper from './utils/helper';
 
 @WebSocketGateway({
-  /* cors: {
+  cors: {
+    origin: ['https://www.ruinsworld.ru'],
     credentials: true, // TODO!!! For development!!!
-  }, */
+  },
   allowEIO3: true,
 })
 export default class Gateway

@@ -31,6 +31,7 @@ export enum EmitterEvents {
   addNPC = 'addNPC',
   removeNPC = 'removeNPC',
   addThing = 'addThing',
+  onAddThing = 'onAddThing',
   removeThing = 'Thing',
   playerKick = 'playerKick',
   npcShot = 'npcShot',

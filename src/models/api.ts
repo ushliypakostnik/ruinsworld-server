@@ -109,14 +109,10 @@ export interface IUnitBack {
   time: number | null;
 }
 
-interface IUnitStore extends IUnitBack {
+export interface IUnitStore extends IUnitBack {
   race: Races;
   name: string;
   exp: number;
-}
-
-export interface IUnitsStore {
-  [key: string]: IUnitStore[];
 }
 
 // Обновления игрока
@@ -179,6 +175,7 @@ export interface ITree extends IPosition {
 }
 
 export interface IWell extends IPosition {
+  y: number;
   rotate: number;
 }
 
@@ -191,12 +188,14 @@ export interface IStone extends IPosition {
 }
 
 export interface IStone2 extends IPosition {
+  y: number;
   scale: number;
   rotateY: number;
   rotateX: number;
 }
 
 export interface IPin extends IPosition {
+  y: number;
   scale: number;
   rotateY: number;
   rotateX: number;
@@ -257,12 +256,14 @@ export interface ILocationWorld extends ILocation {
   trees: ITree[];
   zones: IZone[];
   trashes: ITrash[];
+  trashes2: ITrash[];
   stones1: IStone[];
   stones2: IStone[];
   stones3: IStone[];
   stones4: IStone2[];
   stones5: IStone2[];
   builds: IBuild[];
+  wells: IWell[];
 }
 
 export interface ILocations {

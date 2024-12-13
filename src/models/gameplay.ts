@@ -4,7 +4,7 @@ export enum Races {
     reptiloid = 'reptiloid',
   
     // NPC
-    bidens = 'bidens',
+    // bidens = 'bidens',
     mutant = 'mutant',
     orc = 'orc',
     zombie = 'zombie',
@@ -53,32 +53,22 @@ export enum Races {
       toxic: 0,
       speed: 1,
     },
-    [Races.bidens]: {
-      kick: 2.3,
-      attack: 1.8,
-      regeneration: 1.2,
-      intelligence: 1.2,
-      armor: 2.6,
-      exp: 50,
-      toxic: 10,
-      speed: 0.7,
-    },
     [Races.mutant]: {
-      kick: 2,
+      kick: 2.2,
       attack: 1.6,
-      regeneration: 2.2,
-      intelligence: 1.8,
+      regeneration: 2.4,
+      intelligence: 2,
       armor: 3.4,
       exp: 40,
       toxic: 20,
       speed: 0.65,
     },
     [Races.orc]: {
-      kick: 2.1,
+      kick: 2.4,
       attack: 2,
-      regeneration: 2.8,
-      intelligence: 1.6,
-      armor: 2.7,
+      regeneration: 2.2,
+      intelligence: 1.8,
+      armor: 2.8,
       exp: 30,
       toxic: 6,
       speed: 0.6,
@@ -86,39 +76,29 @@ export enum Races {
     [Races.zombie]: {
       kick: 1,
       attack: 2.5,
-      regeneration: 7,
-      intelligence: 1.25,
+      regeneration: 6,
+      intelligence: 1.4,
       armor: 1,
       exp: 10,
       toxic: 4,
-      speed: 0.55,
+      speed: 0.5,
     },
     [Races.soldier]: {
-      kick: 2.7,
-      attack: 2.3,
-      regeneration: 2.7,
-      intelligence: 1.6,
+      kick: 2.5,
+      attack: 2.7,
+      regeneration: 3,
+      intelligence: 2.2,
       armor: 2,
       toxic: 2,
       exp: 20,
-      speed: 0.6,
-    },
-    [Races.cyborg]: {
-      kick: 2.2,
-      attack: 2.5,
-      regeneration: 3.1,
-      intelligence: 1.8,
-      armor: 2.4,
-      exp: 20,
-      toxic: 2,
-      speed: 0.55,
+      speed: 0.5,
     },
   }
 
   export const RacesConfig = {
     [Races.human]: {
       name: Races.human,
-      enemy: [Races.reptiloid, Races.bidens, Races.mutant, Races.orc, Races.zombie, Races.soldier],
+      enemy: [Races.reptiloid, /* Races.bidens, */ Races.mutant, Races.orc, Races.zombie, Races.soldier],
       playerEnemy: [Races.reptiloid],
       important: [Races.reptiloid],
 
@@ -139,7 +119,7 @@ export enum Races {
     },
     [Races.reptiloid]: {
       name: Races.reptiloid,
-      enemy: [Races.reptiloid, Races.bidens, Races.mutant, Races.orc, Races.zombie, Races.cyborg],
+      enemy: [Races.reptiloid, /* Races.bidens, */ Races.mutant, Races.orc, Races.zombie, Races.cyborg],
       playerEnemy: [Races.reptiloid],
       important: [Races.human],
 
@@ -158,6 +138,7 @@ export enum Races {
       kickTime: 1,
       attackTime: 2.4,
     },
+    /*
     [Races.bidens]: {
       name: Races.bidens,
       enemy: [Races.human, Races.reptiloid, Races.mutant, Races.orc, Races.soldier, Races.cyborg],
@@ -178,10 +159,10 @@ export enum Races {
       jump: 30,
       kickTime: 0.3,
       attackTime: 2.4,
-    },
+    }, */
     [Races.mutant]: {
       name: Races.mutant,
-      enemy: [Races.human, Races.reptiloid, Races.bidens, Races.orc, Races.cyborg, Races.soldier],
+      enemy: [Races.human, Races.reptiloid, /* Races.bidens, */ Races.orc, Races.cyborg, Races.soldier],
       playerEnemy: [Races.reptiloid, Races.human],
       important: [Races.human, Races.reptiloid, Races.orc],
 
@@ -202,7 +183,7 @@ export enum Races {
     },
     [Races.orc]: {
       name: Races.orc,
-      enemy: [Races.human, Races.reptiloid, Races.bidens, Races.mutant, Races.soldier, Races.cyborg],
+      enemy: [Races.human, Races.reptiloid, /* Races.bidens, */ Races.mutant, Races.soldier, Races.cyborg],
       playerEnemy: [Races.reptiloid, Races.human],
       important: [Races.human, Races.reptiloid, Races.mutant],
 
@@ -244,7 +225,7 @@ export enum Races {
     },
     [Races.soldier]: {
       name: Races.soldier,
-      enemy: [Races.human, Races.bidens, Races.zombie, Races.cyborg, Races.orc, Races.mutant],
+      enemy: [Races.human, /* Races.bidens, */ Races.zombie, Races.cyborg, Races.orc, Races.mutant],
       playerEnemy: [Races.human],
       important: [Races.human, Races.cyborg],
 
@@ -265,23 +246,23 @@ export enum Races {
     },
     [Races.cyborg]: {
       name: Races.cyborg,
-      enemy: [Races.reptiloid, Races.bidens, Races.zombie, Races.soldier, Races.orc, Races.mutant],
+      enemy: [Races.reptiloid, /* Races.bidens, */ Races.zombie, Races.soldier, Races.orc, Races.mutant],
       playerEnemy: [Races.reptiloid],
       important: [Races.reptiloid, Races.soldier],
 
-      ...RacesConfigAPI[`${[Races.cyborg]}`],
+      ...RacesConfigAPI[`${[Races.soldier]}`],
 
-      box: { x: 1.2, y: 2.8, z: 1.1 },
+      box: { x: 0.6, y: 1.8, z: 0.75 },
       animations: {
-        jump: 1.9333332777023315,
-        kick: 1.7000000476837158,
-        hit: 1.600000023841858,
+        jump: 1.7000000476837158,
+        kick: 2,
+        hit: 0.800000011920929,
         cry: 4.333333492279053,
         attack: 0.23333333432674408,
-        dead: 3.6666667461395264,
+        dead: 4.366666793823242,
       },
-      jump: 20,
-      kickTime: 0.4,
+      jump: 15,
+      kickTime: 0.7,
       attackTime: 2.15,
     },
   };

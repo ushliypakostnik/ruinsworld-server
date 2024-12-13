@@ -83,6 +83,7 @@ export default class Game {
     this.points = new Points();
 
     this.world.init(this._self);
+    this.things.init(this._self);
     this.points.init(
       this.world.array.map((location: ILocationUnits) => {
         return {
@@ -106,9 +107,11 @@ export default class Game {
       this._self.unitsByLocations = this._getUnitsByLocations();
     });
 
+    /*
     this._self.emiiter.on(EmitterEvents.addThing, () => {
       // console.log('Game addThing event!!!');
     });
+    */
 
     this._self.emiiter.on(EmitterEvents.removeNPC, (id) => {
       // console.log('Game removeNPC event!!!');

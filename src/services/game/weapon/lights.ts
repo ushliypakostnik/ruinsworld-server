@@ -101,7 +101,9 @@ export default class Lights {
         light.positionZ,
       );
       this._position.add(
-        this._velocity.clone().multiplyScalar(self.events.delta * 100),
+        this._velocity
+          .clone()
+          .multiplyScalar(self.events.delta * Number(process.env.LIGTH_SPEED)),
       );
       light.positionX = this._position.x;
       light.positionY = this._position.y;

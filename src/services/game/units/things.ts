@@ -7,7 +7,11 @@ import { EmitterEvents } from '../../../models/modules';
 // Types
 import type { ISelf } from '../../../models/modules';
 import type { IThing, IUnitBack } from '../../../models/api';
-import { Things as ThingsEnum, ThingsSimple, ThingsRare } from '../../../models/gameplay';
+import {
+  Things as ThingsEnum,
+  ThingsSimple,
+  ThingsRare,
+} from '../../../models/gameplay';
 
 // Modules
 import Thing from './thing';
@@ -58,6 +62,14 @@ export default class Things {
     });
   }
 
+  init(self: ISelf) {
+    // addNPC event subscribe
+    self.emiiter.on(EmitterEvents.onAddThing, (message) => {
+      this._item = this._getUnitById(message.id);
+      this._item.y = message.y;
+    });
+  }
+
   // Utils
 
   public getList(): IThing[] {
@@ -82,12 +94,11 @@ export default class Things {
 
     // Решаем какой предмет добавить - редкий или обычный
     this._number = Helper.randomInteger(1, 12);
-    if (this._number === 1) this._array = this._THINGS_RARE; 
+    if (this._number === 1) this._array = this._THINGS_RARE;
     else this._array = this._THINGS_SIMPLE;
     // Добавляем предмет которых меньше всего
     this._number = 0;
-    this._string =
-      this._array[Helper.randomInteger(0, this._array.length - 1)];
+    this._string = this._array[Helper.randomInteger(0, this._array.length - 1)];
     this._array.forEach(
       (type) =>
         (this.counters[type] = this.list.filter(
@@ -106,7 +117,7 @@ export default class Things {
       ...this._item,
       ...this._START,
       type: this._string as ThingsEnum,
-      y: (Math.random() + 0.1) / 2,
+      y: this._string === ThingsEnum.go ? -0.8 : (Math.random() + 0.1) / -2 - 1,
       rotateY: Helper.randomInteger(0, 360),
       rotateX: Helper.randomInteger(-45, 45),
     };
