@@ -416,7 +416,7 @@ export default class World {
 
         // Колодцы
         this._wells = [];
-        // this._positions = []; !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        this._positions = [];
         this._number = Helper.randomInteger(2, 4);
         for (let n = 0; n < this._number; ++n) {
           this._position = this._helper.getUniqueRandomPosition(
