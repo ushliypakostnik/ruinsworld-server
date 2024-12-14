@@ -93,14 +93,13 @@ export default class World {
 
     // Очень далекие горы
     this._stones2 = [];
-    this._number = Helper.randomInteger(5, 7);
     this._positions = [];
-    for (let n = 0; n < this._number + this._number; ++n) {
+    for (let n = 0; n < 5; ++n) {
       this._position = this._helper.getUniqueRandomPosition(
         this._positions,
         0,
         0,
-        50,
+        30,
         (process.env.SIZE as unknown as number) * 0.95,
         (process.env.SIZE as unknown as number) * 0.9,
       );
@@ -132,14 +131,14 @@ export default class World {
 
         // Далекие горы
         this._stones1 = [];
-        this._number = Helper.randomInteger(5, 9);
+        this._number = Helper.randomInteger(5, 7);
         this._positions = [];
         for (let n = 0; n < this._number + this._number; ++n) {
           this._position = this._helper.getUniqueRandomPosition(
             this._positions,
             0,
             0,
-            40,
+            25,
             (process.env.SIZE as unknown as number) * 0.8,
             (process.env.SIZE as unknown as number) * 0.65,
           );
@@ -352,9 +351,9 @@ export default class World {
             this._positions,
             0,
             0,
-            40,
+            30,
             (process.env.SIZE as unknown as number) * 0.35,
-            60,
+            50,
           );
           this._positions.push(this._position);
           this._zones.push({
@@ -376,7 +375,7 @@ export default class World {
             this._positions,
             0,
             0,
-            25,
+            20,
             (process.env.SIZE as unknown as number) * 0.3,
             40,
           );
@@ -402,7 +401,7 @@ export default class World {
             this._positions,
             0,
             0,
-            25,
+            20,
             (process.env.SIZE as unknown as number) * 0.3,
             40,
           );
@@ -424,7 +423,7 @@ export default class World {
             this._positions,
             0,
             0,
-            40,
+            30,
             (process.env.SIZE as unknown as number) * 0.33,
             40,
           );

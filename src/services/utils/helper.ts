@@ -84,14 +84,16 @@ export default class Helper {
     radius: number,
     center: number,
   ): IPosition {
+    let counter = 0;
     let position: IPosition = this.getRandomPosition(
       centerX,
       centerZ,
       radius,
       center,
     );
-    while (this._isBadPosition(positions, position, distance)) {
+    while (this._isBadPosition(positions, position, distance) && counter < 500) {
       position = this.getRandomPosition(centerX, centerZ, radius, center);
+      ++counter;
     }
     return position;
   }
