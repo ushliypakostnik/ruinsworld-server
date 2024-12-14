@@ -110,9 +110,13 @@ export interface IUnitBack {
 }
 
 export interface IUnitStore extends IUnitBack {
-  race: Races;
   name: string;
+  race: string;
   exp: number;
+}
+
+export interface IUnitsStore {
+  [key: string]: IUnitStore[];
 }
 
 // Обновления игрока

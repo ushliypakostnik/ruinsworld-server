@@ -107,7 +107,7 @@ export default class World {
     // Очень далекие горы
     this._stones2 = [];
     this._positions = [];
-    for (let n = 0; n < 5; ++n) {
+    for (let n = 0; n < 6; ++n) {
       this._position = this._helper.getUniqueRandomPosition(
         this._positions,
         0,
@@ -144,7 +144,7 @@ export default class World {
 
         // Далекие горы
         this._stones1 = [];
-        this._number = Helper.randomInteger(5, 7);
+        this._number = Helper.randomInteger(6, 9);
         this._positions = [];
         for (let n = 0; n < this._number + this._number; ++n) {
           this._position = this._helper.getUniqueRandomPosition(
@@ -270,7 +270,7 @@ export default class World {
           this._stones4.push({
             ...this._position,
             y: 0,
-            scale: Math.random() / 2 + 0.1 + Math.random(),
+            scale: Math.random() + 0.2,
             rotateY: Helper.randomInteger(0, 360),
             rotateX: Helper.randomInteger(15, 15),
           });
@@ -303,7 +303,7 @@ export default class World {
         // Деревья
         this._trees = [];
         this._positions = [];
-        this._number2 = GREEN_GENERATION[y][x] / 2;
+        this._number2 = Math.floor(GREEN_GENERATION[y][x] / 1.5);
         this._number = Helper.randomInteger(
           Math.round(this._number2),
           Math.round(1.5 * this._number2),
@@ -322,8 +322,8 @@ export default class World {
           this._trees.push({
             ...this._position,
             scale: Helper.randomInteger(
-              this._number2,
-              Math.round(2 * this._number2),
+              this._number2 * 1.5,
+              Math.round(2 * this._number2) * 1.5,
             ),
             rotateX: Helper.randomInteger(-1, 15),
             rotateY: Helper.randomInteger(0, 360),
@@ -395,7 +395,7 @@ export default class World {
           this._positions.push(this._position);
           this._trashes.push({
             ...this._position,
-            scale: Helper.randomInteger(15, 45) * (Math.random() + 1),
+            scale: Helper.randomInteger(25, 50) * (Math.random() + 1.5),
             scaleY: (Math.random() + 1) * 2,
             rotate: Helper.randomInteger(0, 360),
           });

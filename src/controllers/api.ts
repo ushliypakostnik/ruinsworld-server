@@ -2,7 +2,7 @@
 import { Controller, Get, Param, HttpCode, Inject } from '@nestjs/common';
 
 // Types
-import type { ILocation, IMapUnit } from '../models/api';
+import type { ILocation, IMapUnit, IUnitsStore } from '../models/api';
 
 // Constants
 import { RacesConfigAPI, ThingsConfig } from '../models/gameplay';
@@ -20,6 +20,10 @@ export default class Api {
   public getCofig(): {
     version: string,
     exp: number,
+    humansX: number,
+    humansY: number,
+    reptilsX: number,
+    reptilsY: number,
     races: typeof RacesConfigAPI;
     things: typeof ThingsConfig;
   } {
@@ -27,6 +31,10 @@ export default class Api {
     return {
       version: process.env.VERSION,
       exp: Number(process.env.EXP_COEF_USER),
+      humansX: Number(process.env.START_X_HUMANS),
+      humansY: Number(process.env.START_Y_HUMANS),
+      reptilsX: Number(process.env.START_X_REPTILOIDS),
+      reptilsY: Number(process.env.START_Y_REPTILOIDS),
       races: RacesConfigAPI,
       things: ThingsConfig,
     };
@@ -71,6 +79,7 @@ export default class Api {
     nowShots: number;
     lights: number;
     nowLights: number;
+    usersStore: IUnitsStore;
   } {
     return {
       users: this._gateway.game.users.counter,
@@ -82,6 +91,7 @@ export default class Api {
       nowShots: this._gateway.game.weapon.shots.list.length,
       lights: this._gateway.game.weapon.lights.counter,
       nowLights: this._gateway.game.weapon.lights.list.length,
+      usersStore: this._gateway.game.users.listStore,
     };
   }
 }

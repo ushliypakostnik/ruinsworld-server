@@ -11,7 +11,7 @@ export const STONES_GENERATION = [
 ];
 
 export const GREEN_GENERATION = [
-  [ 5, 7, 10 ],
+  [ 5, 7, 12 ],
   [ 3, 3, 7, ],
   [ 1, 3, 5 ],
 ];
