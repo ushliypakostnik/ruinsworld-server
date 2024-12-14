@@ -91,6 +91,19 @@ export default class World {
     this._octrees = {};
     const alpha = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
 
+    this._trees = [];
+    this._stones1 = [];
+    this._stones2 = [];
+    this._stones3 = [];
+    this._stones4 = [];
+    this._stones5 = [];
+    this._grasses = [];
+    this._zones = [];
+    this._trashes = [];
+    this._trashes2 = [];
+    this._builds = [];
+    this._wells = [];
+
     // Очень далекие горы
     this._stones2 = [];
     this._positions = [];
@@ -257,7 +270,7 @@ export default class World {
           this._stones4.push({
             ...this._position,
             y: 0,
-            scale: Math.random() / 2 + 0.1,
+            scale: Math.random() / 2 + 0.1 + Math.random(),
             rotateY: Helper.randomInteger(0, 360),
             rotateX: Helper.randomInteger(15, 15),
           });
@@ -290,9 +303,9 @@ export default class World {
         // Деревья
         this._trees = [];
         this._positions = [];
-        this._number2 = GREEN_GENERATION[y][x] / 1.5;
+        this._number2 = GREEN_GENERATION[y][x] / 2;
         this._number = Helper.randomInteger(
-          this._number2,
+          Math.round(this._number2),
           Math.round(1.5 * this._number2),
         );
         for (let n = 0; n < this._number; ++n) {
@@ -375,8 +388,8 @@ export default class World {
             this._positions,
             0,
             0,
-            20,
-            (process.env.SIZE as unknown as number) * 0.3,
+            25,
+            (process.env.SIZE as unknown as number) * 0.33,
             40,
           );
           this._positions.push(this._position);
@@ -401,8 +414,8 @@ export default class World {
             this._positions,
             0,
             0,
-            20,
-            (process.env.SIZE as unknown as number) * 0.3,
+            25,
+            (process.env.SIZE as unknown as number) * 0.33,
             40,
           );
           this._positions.push(this._position);
@@ -416,7 +429,7 @@ export default class World {
 
         // Колодцы
         this._wells = [];
-        // this._positions = []; !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        this._positions = [];
         this._number = Helper.randomInteger(2, 4);
         for (let n = 0; n < this._number; ++n) {
           this._position = this._helper.getUniqueRandomPosition(
