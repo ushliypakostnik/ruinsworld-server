@@ -279,7 +279,7 @@ export default class Game {
     // И проверяем юниты
     this.world.setNewPlayer(this._self, this._user.id as string, this._id);
 
-    this._afterEnterToggle();
+    this._onChangeUnits();
     // console.log('Game onEnter setNewPlayer: ', this._user);
 
     return {
@@ -293,13 +293,14 @@ export default class Game {
     // hgconsole.log('Game onReenter: ', message);
     this.users.onReenter(this._self, message);
     this.world.onReenter(message);
-    this._afterEnterToggle();
+    this._onChangeUnits();
   }
 
   // После входа или выхода
-  private _afterEnterToggle(): void {
+  private _onChangeUnits(): void {
     this._self.unitsByLocations = this._getUnitsByLocations();
-    this._checkUnits();
+    
+    // this._checkUnits();
   }
 
   // Релокация игрока
@@ -307,7 +308,8 @@ export default class Game {
     this.users.onRelocation(this._self, message);
     this.world.onRelocation(this._self, message);
     this._self.unitsByLocations = this._getUnitsByLocations();
-    this._checkUnits();
+    
+    // this._checkUnits();
   }
 
   // Завершение релокации игрока
@@ -405,7 +407,7 @@ export default class Game {
       // console.log(npc.positionX, npc.positionZ, this._p1.distanceTo(this._p2));
 
       // Выход на другую локацию
-      if (this._p1.distanceTo(this._p2) > Number(process.env.SIZE) * 0.7) {
+      if (this._p1.distanceTo(this._p2) > Number(process.env.SIZE) * 0.9) {
         ++this._number;
         this._isRight = npc.positionX >= 0;
         this._isBottom = npc.positionZ >= 0;
@@ -423,10 +425,11 @@ export default class Game {
         });
       }
     });
-    if (this._number > 0) this._checkUnits();
+    // if (this._number > 0) this._checkUnits();
   }
 
   // Главная оптимизирующая механика
+  /*
   private _checkUnits() {
     ////////////////////////////////////////////////////////////////////////////////////////
     // Тестировние нагрузки!!!
@@ -441,7 +444,7 @@ export default class Game {
         } else this.npc.toggleSleep(this._ids, true);
       });
     }
-  }
+  } */
 
   private _animate(): void {
     this._events.animate();

@@ -2,7 +2,7 @@
 import { Controller, Get, Param, HttpCode, Inject } from '@nestjs/common';
 
 // Types
-import type { ILocation, IMapUnit, IUnitsStore } from '../models/api';
+import type { ILocation, IMapUnit } from '../models/api';
 
 // Constants
 import { RacesConfigAPI, ThingsConfig } from '../models/gameplay';
@@ -19,6 +19,7 @@ export default class Api {
   @HttpCode(200)
   public getCofig(): {
     version: string,
+    size: number,
     exp: number,
     humansX: number,
     humansY: number,
@@ -30,6 +31,7 @@ export default class Api {
     // console.log('Controller Get getCofig!!! ');
     return {
       version: process.env.VERSION,
+      size: Number(process.env.SIZE),
       exp: Number(process.env.EXP_COEF_USER),
       humansX: Number(process.env.START_X_HUMANS),
       humansY: Number(process.env.START_Y_HUMANS),
@@ -79,7 +81,6 @@ export default class Api {
     nowShots: number;
     lights: number;
     nowLights: number;
-    usersStore: IUnitsStore;
   } {
     return {
       users: this._gateway.game.users.counter,
@@ -91,7 +92,12 @@ export default class Api {
       nowShots: this._gateway.game.weapon.shots.list.length,
       lights: this._gateway.game.weapon.lights.counter,
       nowLights: this._gateway.game.weapon.lights.list.length,
-      usersStore: this._gateway.game.users.listStore,
     };
+  }
+
+  @Get('/destroy')
+  @HttpCode(200)
+  public destroy(): void {
+    console.log('Controller Get destroy!!! ');
   }
 }

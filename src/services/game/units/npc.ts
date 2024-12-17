@@ -88,7 +88,7 @@ export default class NPC {
     directionZ: 0,
     directionW: 0,
     rotationY: 0,
-    isSleep: false,
+    // isSleep: false,
     lifecycle: Lifecycle.born,
     name: 'NPC',
     health: 100,
@@ -267,6 +267,7 @@ export default class NPC {
     self.emiiter.emit(EmitterEvents.addNPC, this._item);
   }
 
+  /*
   // Засыпают или просыпаются
   public toggleSleep(ids: string[], is: boolean): void {
     // console.log('NPC sleep!: ', message);
@@ -274,7 +275,7 @@ export default class NPC {
       .filter((unit) => unit.lifecycle !== Lifecycle.born)
       .filter((unit) => ids.includes(unit.id))
       .forEach((unit) => (unit.isSleep = is));
-  }
+  } */
 
   // Столкновения
   private _collitions(
@@ -941,17 +942,19 @@ export default class NPC {
         if (collider.target.includes('NPC')) {
           // Урон неписи
           this._item = this._getNPCById(collider.target);
-          this._item.isOnHit = true;
-          this._item.health -= this._helper.getDamage(
-            Damages.kick,
-            unit.race,
-            this._item.race,
-            null,
-            false,
-            false,
-            unit.exp,
-            this._item.exp,
-          );
+          if (this._item) {
+            this._item.isOnHit = true;
+            this._item.health -= this._helper.getDamage(
+              Damages.kick,
+              unit.race,
+              this._item.race,
+              null,
+              false,
+              false,
+              unit.exp,
+              this._item.exp,
+            );
+          }
         } else {
           // Урон игроку
           self.emiiter.emit(EmitterEvents.playerKick, {
@@ -1069,6 +1072,7 @@ export default class NPC {
     this._timerLazyCheck += self.events.delta;
     if (this._timerLazyCheck > 0.2) this._timerLazyCheck = 0;
 
+    /*
     // Главная оптимизирующая механика
     this._listAnimate = [
       ...this.list.filter(
@@ -1103,7 +1107,6 @@ export default class NPC {
         );
     }
 
-    /*
     if (this._listAnimate.length) {
       console.log(
         this._listAnimate.length,
@@ -1112,8 +1115,12 @@ export default class NPC {
       );
     } */
 
+    this._listAnimate = this.list.filter(
+      (unit) => unit.lifecycle !== Lifecycle.dead,
+    );
+
     this._listAnimate
-      .concat(this._listSleepAnimateResult)
+      // .concat(this._listSleepAnimateResult)
       .forEach((unit: IUnit) => {
         this._collider = this.colliders[unit.id];
         if (this._collider) {
@@ -1352,7 +1359,6 @@ export default class NPC {
 
   // Пытаемся удалить непись
   private _removeUnit(self: ISelf, id: string): number | null {
-    this._item = this._getNPCById(id);
     this._itemBack = this._getNPCBackById(id);
     if (this._itemBack) {
       // Удаляем из списков
@@ -1368,6 +1374,7 @@ export default class NPC {
       }, Number(process.env.REINCARNATION_NPC_TIME));
     }
 
+    this._item = this._getNPCById(id);
     if (this._item) return this._item.exp;
     return null;
   }

@@ -66,6 +66,7 @@ export default class Gateway
       ////////////////////////////////////////////////////////////////////////////////////////
       // Тестировние нагрузки!!!
       ////////////////////////////////////////////////////////////////////////////////////////
+      /*
       if (Number(process.env.FULL_TEST) === 0) {
         this._locations = this.game.world.array.filter(
           (location) => location.users.length > 0,
@@ -87,7 +88,15 @@ export default class Gateway
               this.game.getGameUpdates(location.id),
             );
         });
-      }
+      } */
+      this.game.world.array.forEach((location: ILocationUnits) => {
+        this.server
+          .to(location.id)
+          .emit(
+            Messages.updateToClients,
+            this.game.getGameUpdates(location.id),
+          );
+      });
     }
   }
 

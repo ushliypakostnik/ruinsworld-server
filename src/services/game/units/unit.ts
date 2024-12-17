@@ -25,7 +25,7 @@ export default class User implements IUnit {
   public isJump: boolean;
   public isOnHit: boolean;
   public isOnHit2: boolean;
-  public isSleep: boolean;
+  // public isSleep: boolean;
 
   constructor(
     readonly id: string

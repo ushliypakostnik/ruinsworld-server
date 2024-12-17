@@ -32,6 +32,8 @@ import {
   STONES_GENERATION,
   GREEN_GENERATION,
   TRASHES_GENERATION,
+  DECOR1_GENERATION,
+  DECOR2_GENERATION,
 } from './config';
 import { EmitterEvents } from '../../../models/modules';
 import { Moves, Things as ThingsEnum } from '../../../models/gameplay';
@@ -113,12 +115,12 @@ export default class World {
         0,
         0,
         30,
-        (process.env.SIZE as unknown as number) * 0.95,
-        (process.env.SIZE as unknown as number) * 0.9,
+        (process.env.SIZE as unknown as number) * 1.25,
+        (process.env.SIZE as unknown as number) * 1.1,
       );
 
       this._positions.push(this._position);
-      this._num1 = (Math.random() + 1) * Helper.randomInteger(10, 30);
+      this._num1 = (Math.random() + 1) * Helper.randomInteger(5, 10);
       this._stones2.push({
         ...this._position,
         scaleX: this._num1,
@@ -144,7 +146,7 @@ export default class World {
 
         // Далекие горы
         this._stones1 = [];
-        this._number = Helper.randomInteger(6, 9);
+        this._number = Helper.randomInteger(4, 7);
         this._positions = [];
         for (let n = 0; n < this._number + this._number; ++n) {
           this._position = this._helper.getUniqueRandomPosition(
@@ -152,12 +154,12 @@ export default class World {
             0,
             0,
             25,
+            (process.env.SIZE as unknown as number) * 0.9,
             (process.env.SIZE as unknown as number) * 0.8,
-            (process.env.SIZE as unknown as number) * 0.65,
           );
 
           this._positions.push(this._position);
-          this._num1 = (Math.random() + 1) * Helper.randomInteger(2, 9);
+          this._num1 = (Math.random() + 1) * Helper.randomInteger(3, 6);
           this._stones1.push({
             ...this._position,
             scaleX: this._num1,
@@ -215,7 +217,7 @@ export default class World {
           }
         }
 
-        // Столбы
+        // Стены
         this._stones3 = [];
         this._number2 = STONES_GENERATION[y][x];
         this._number = Helper.randomInteger(
@@ -256,7 +258,7 @@ export default class World {
         // Камешки
         this._stones4 = [];
         this._positions = [];
-        for (let n = 0; n < 800; ++n) {
+        for (let n = 0; n < DECOR1_GENERATION; ++n) {
           this._position = this._helper.getUniqueRandomPosition(
             this._positions,
             0,
@@ -279,7 +281,7 @@ export default class World {
         // Железяки
         this._stones5 = [];
         this._positions = [];
-        for (let n = 0; n < 200; ++n) {
+        for (let n = 0; n < DECOR2_GENERATION; ++n) {
           this._position = this._helper.getUniqueRandomPosition(
             this._positions,
             0,
@@ -303,7 +305,7 @@ export default class World {
         // Деревья
         this._trees = [];
         this._positions = [];
-        this._number2 = Math.floor(GREEN_GENERATION[y][x] / 1.5);
+        this._number2 = GREEN_GENERATION[y][x];
         this._number = Helper.randomInteger(
           Math.round(this._number2),
           Math.round(1.5 * this._number2),
@@ -314,7 +316,7 @@ export default class World {
             0,
             0,
             20,
-            (process.env.SIZE as unknown as number) * 0.65,
+            (process.env.SIZE as unknown as number) * 0.6,
             30,
           );
 
@@ -336,7 +338,7 @@ export default class World {
         this._positions = [];
         this._number2 = GREEN_GENERATION[y][x];
         this._number = Helper.randomInteger(
-          Math.round(0.5 * this._number2),
+          Math.round(1 * this._number2),
           Math.round(3 * this._number2),
         );
         for (let n = 0; n < this._number; ++n) {
@@ -351,14 +353,14 @@ export default class World {
           this._positions.push(this._position);
           this._grasses.push({
             ...this._position,
-            scale: Helper.randomInteger(1, 1.5 * this._number2),
+            scale: Helper.randomInteger(2, Math.round(1.5 * this._number2)),
           });
         }
 
         // Отравленные зоны
         this._zones = [];
         this._positions = [];
-        this._number = Helper.randomInteger(4, 7);
+        this._number = Helper.randomInteger(3, 5);
         for (let n = 0; n < this._number; ++n) {
           this._position = this._helper.getUniqueRandomPosition(
             this._positions,
@@ -371,7 +373,7 @@ export default class World {
           this._positions.push(this._position);
           this._zones.push({
             ...this._position,
-            radius: Helper.randomInteger(20, 40),
+            radius: Helper.randomInteger(15, 30),
           });
         }
 
@@ -395,8 +397,8 @@ export default class World {
           this._positions.push(this._position);
           this._trashes.push({
             ...this._position,
-            scale: Helper.randomInteger(25, 50) * (Math.random() + 1.5),
-            scaleY: (Math.random() + 1) * 2,
+            scale: Helper.randomInteger(15, 30) * (Math.random() + 1.75),
+            scaleY: (Math.random() + 1) * 1.25, // Не трогать !!!
             rotate: Helper.randomInteger(0, 360),
           });
         }
@@ -421,8 +423,8 @@ export default class World {
           this._positions.push(this._position);
           this._trashes2.push({
             ...this._position,
-            scale: Helper.randomInteger(25, 75) * (Math.random() + 1),
-            scaleY: (Math.random() + 1) * 2.5,
+            scale: Helper.randomInteger(15, 45) * (Math.random() + 1.5),
+            scaleY: (Math.random() + 1) * 1.5, // Не трогать !!!
             rotate: Helper.randomInteger(0, 360),
           });
         }
@@ -505,7 +507,12 @@ export default class World {
         new THREE.BoxGeometry(20.5 * 1.5, 20.5 * 1.2, 20.5 * 1.5),
       );
       this._mesh.position.set(0, -2.5, 0);
+      this._meshClone = new THREE.Mesh(
+        new THREE.BoxGeometry(20.5 * 1.25, 20.5 * 1.1, 20.5 * 1.25),
+      );
+      this._meshClone.position.set(0, -2.5, 0);
       this._group.add(this._mesh);
+      this._group.add(this._meshClone);
 
       // Деревья
       this._pseudo = new THREE.Mesh(
@@ -658,13 +665,13 @@ export default class World {
         this._number =
           thing.type === ThingsEnum.go
             ? this._result.position.y > -2
-              ? 2.1
-              : 2
+              ? 1.95
+              : 1.85
             : thing.type === ThingsEnum.vodka
             ? this._result.position.y > -2
-              ? 1.8
-              : 1.9
-            : 1.9;
+              ? 1.75
+              : 1.8
+            : 1.85;
         self.emiiter.emit(EmitterEvents.onAddThing, {
           id: thing.id,
           y:
@@ -734,6 +741,9 @@ export default class World {
     locationId: string,
     field: Fields,
   ): void {
+    if (!this.locations[locationId]) {
+      console.log('AAAAAAAA', id, locationId, field, this.locations);
+    }
     this.locations[locationId][field] = this.locations[locationId][
       field
     ].filter((unit) => unit !== id);

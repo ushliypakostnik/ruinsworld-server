@@ -15,7 +15,6 @@ import {
   IPointMessage,
   IUseMessage,
   IOnUseMessage,
-  IUnitsStore,
 } from '../../../models/api';
 
 // Modules
@@ -39,7 +38,6 @@ export default class Users {
   public list: Unit[];
   public listBack: IUnitBack[];
   public listInfo: IUnitInfo[];
-  public listStore: IUnitsStore;
   public counter = 0;
 
   private _updates!: IUpdateMessage[];
@@ -58,7 +56,7 @@ export default class Users {
     health: 100,
     name: null,
     positionX: 0,
-    positionY: 0.1,
+    positionY: 0.25,
     positionZ: 0,
     directionX: -0.7,
     directionY: 0,
@@ -66,7 +64,7 @@ export default class Users {
     directionW: 0,
     rotationY: 0,
     animation: 'stand',
-    isSleep: false,
+    // isSleep: false,
     isJump: false,
     isOnHit2: false,
     exp: 0,
@@ -76,7 +74,6 @@ export default class Users {
     this.list = [];
     this.listBack = [];
     this.listInfo = [];
-    this.listStore = {};
     this._helper = new Helper();
   }
 
@@ -120,8 +117,8 @@ export default class Users {
     this._item = {
       ...this._item,
       ...this._START,
-      positionX: Helper.randomInteger(1, 2) * Helper.staticPlusOrMinus(),
-      positionZ: Helper.randomInteger(1, 2) * Helper.staticPlusOrMinus(),
+      positionX: Helper.randomInteger(1, 2) * Helper.staticPlusOrMinus() + Math.random(),
+      positionZ: Helper.randomInteger(1, 2) * Helper.staticPlusOrMinus() + Math.random(),
       name: message.name as string,
       race: message.race as Races,
     };
@@ -162,28 +159,6 @@ export default class Users {
     // console.log('Users _removePlayer!!!', id, self.scene[id]);
     this._item = this._getUserById(id as string);
     if (this._item) {
-      this._itemBack = this._getUserBackById(id as string);
-      if (this._itemBack) {
-        // Сохраняем пользователя для статистики
-        if (Helper.isHasProperty(this.listStore, id)) {
-          this.listStore[id].push({
-            ...this._itemBack,
-            name: this._item.name,
-            race: this._item.race,
-            exp: this._item.exp,
-          });
-        } else {
-          this.listStore[id] = [
-            {
-              ...this._itemBack,
-              name: this._item.name,
-              race: this._item.race,
-              exp: this._item.exp,
-            },
-          ];
-        }
-      }
-
       if (self.scene[id]) delete self.scene[id];
       this.list = this.list.filter((player) => player.id !== id);
       this.listBack = this.listBack.filter((player) => player.id !== id);
@@ -369,7 +344,7 @@ export default class Users {
     ).multiplyScalar(0.85);
 
     this._item.positionX = this._v1.x;
-    this._item.positionY = 0;
+    this._item.positionY = 0.25;
     this._item.positionZ = this._v1.z;
 
     this._mesh = self.scene[this._item.id];

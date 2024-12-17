@@ -32,67 +32,73 @@ export enum Races {
     go = 'go'
   }
 
+  const soldiers = {
+    box: { x: 0.6, y: 1.8, z: 0.75 },
+    isWeapon: true,
+    kick: 6,
+    attack: 5,
+    regeneration: 5.5,
+    intelligence: 2.3,
+    armor: 5.7,
+    toxic: 2,
+    exp: 20,
+    speed: 0.55,
+  };
+
+  const players = {
+    box: { x: 0.6, y: 1.8, z: 0.75 },
+    isWeapon: true,
+    kick: 1,
+    attack: 1,
+    regeneration: 1,
+    intelligence: 1,
+    armor: 2,
+    exp: 0,
+    toxic: 0,
+    speed: 1,
+  };
+
   export const RacesConfigAPI = {
-    [Races.human]: {
-      kick: 1,
-      attack: 1,
-      regeneration: 1,
-      intelligence: 1,
-      armor: 1.2,
-      exp: 0,
-      toxic: 0,
-      speed: 1,
-    },
-    [Races.reptiloid]: {
-      kick: 1,
-      attack: 1,
-      regeneration: 1,
-      intelligence: 1,
-      armor: 1.2,
-      exp: 0,
-      toxic: 0,
-      speed: 1,
-    },
+    [Races.human]: players,
+    [Races.reptiloid]: players,
     [Races.mutant]: {
+      box: { x: 4, y: 5, z: 2.5 },
+      isWeapon: false,
       kick: 2.2,
-      attack: 1.6,
+      attack: 1.9,
       regeneration: 2.4,
-      intelligence: 2,
-      armor: 3.4,
+      intelligence: 1.7,
+      armor: 3.3,
       exp: 40,
       toxic: 20,
       speed: 0.65,
     },
     [Races.orc]: {
-      kick: 2.4,
-      attack: 2,
-      regeneration: 2.2,
-      intelligence: 1.8,
-      armor: 2.8,
+      box: { x: 2, y: 3.6, z: 1.5 },
+      isWeapon: false,
+      kick: 3.5,
+      attack: 2.5,
+      regeneration: 3.4,
+      intelligence: 2.1,
+      armor: 4.2,
       exp: 30,
-      toxic: 6,
+      toxic: 10,
       speed: 0.6,
     },
     [Races.zombie]: {
-      kick: 1,
-      attack: 2.5,
-      regeneration: 6,
-      intelligence: 1.4,
-      armor: 1,
+      box: { x: 0.6, y: 1.9, z: 0.75 },
+      isWeapon: false,
+      kick: 1.8,
+      attack: 4.5,
+      regeneration: 7,
+      intelligence: 1.9,
+      armor: 2.2,
       exp: 10,
-      toxic: 4,
+      toxic: 5,
       speed: 0.5,
     },
-    [Races.soldier]: {
-      kick: 2.5,
-      attack: 2.7,
-      regeneration: 3,
-      intelligence: 2.2,
-      armor: 2,
-      toxic: 2,
-      exp: 20,
-      speed: 0.5,
-    },
+    [Races.soldier]: soldiers,
+    [Races.cyborg]: soldiers,
   }
 
   export const RacesConfig = {
@@ -104,7 +110,6 @@ export enum Races {
 
       ...RacesConfigAPI[`${[Races.human]}`],
 
-      box: { x: 0.6, y: 1.8, z: 0.75 },
       animations: {
         jump: 0,
         kick: 0,
@@ -125,7 +130,6 @@ export enum Races {
 
       ...RacesConfigAPI[`${[Races.reptiloid]}`],
 
-      box: { x: 0.6, y: 1.8, z: 0.75 },
       animations: {
         jump: 0,
         kick: 0,
@@ -138,28 +142,6 @@ export enum Races {
       kickTime: 1,
       attackTime: 2.4,
     },
-    /*
-    [Races.bidens]: {
-      name: Races.bidens,
-      enemy: [Races.human, Races.reptiloid, Races.mutant, Races.orc, Races.soldier, Races.cyborg],
-      playerEnemy: [Races.reptiloid, Races.human],
-      important: [Races.human, Races.reptiloid, Races.mutant, Races.orc],
-
-      ...RacesConfigAPI[`${[Races.bidens]}`],
-
-      box: { x: 4.5, y: 9.7, z: 3 },
-      animations: {
-        jump: 3.200000047683716,
-        kick: 3.4000000953674316,
-        hit: 2.0333333015441895,
-        cry: 5.433333396911621,
-        attack: 4.666666507720947,
-        dead: 3.6666667461395264,
-      },
-      jump: 30,
-      kickTime: 0.3,
-      attackTime: 2.4,
-    }, */
     [Races.mutant]: {
       name: Races.mutant,
       enemy: [Races.human, Races.reptiloid, /* Races.bidens, */ Races.orc, Races.cyborg, Races.soldier],
@@ -168,7 +150,6 @@ export enum Races {
 
       ...RacesConfigAPI[`${[Races.mutant]}`],
 
-      box: { x: 4, y: 5, z: 2.5 },
       animations: {
         jump: 4.133333206176758,
         kick: 3.4000000953674316,
@@ -189,7 +170,6 @@ export enum Races {
 
       ...RacesConfigAPI[`${[Races.orc]}`],
 
-      box: { x: 2, y: 3.6, z: 1.5 },
       animations: {
         jump: 2.700000047683716,
         kick: 2.5333333015441895,
@@ -210,7 +190,6 @@ export enum Races {
 
       ...RacesConfigAPI[`${[Races.zombie]}`],
 
-      box: { x: 0.6, y: 1.9, z: 0.75 },
       animations: {
         jump: 3.200000047683716,
         kick: 3.4000000953674316,
@@ -231,7 +210,6 @@ export enum Races {
 
       ...RacesConfigAPI[`${[Races.soldier]}`],
 
-      box: { x: 0.6, y: 1.8, z: 0.75 },
       animations: {
         jump: 1.7000000476837158,
         kick: 2,
@@ -250,9 +228,8 @@ export enum Races {
       playerEnemy: [Races.reptiloid],
       important: [Races.reptiloid, Races.soldier],
 
-      ...RacesConfigAPI[`${[Races.soldier]}`],
+      ...RacesConfigAPI[`${[Races.cyborg]}`],
 
-      box: { x: 0.6, y: 1.8, z: 0.75 },
       animations: {
         jump: 1.7000000476837158,
         kick: 2,
@@ -293,7 +270,7 @@ export enum Races {
       max: 5,
     },
     [Things.go]: {
-      exp: 750,
+      exp: 500,
     },
   };
 

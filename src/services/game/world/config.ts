@@ -1,26 +1,29 @@
 export const BUILDS_GENERATION = [
-  [ 3, 7, 0 ],
-  [ 3, 10, 7 ],
-  [ 2, 7, 3 ],
+  [ 2, 4, 0 ],
+  [ 2, 6, 2 ],
+  [ 1, 4, 2 ],
 ];
 
 export const STONES_GENERATION = [
   [ 2, 3, 0 ],
-  [ 3, 4, 3 ],
+  [ 3, 4, 2 ],
   [ 2, 3, 2 ],
 ];
 
 export const GREEN_GENERATION = [
-  [ 5, 7, 12 ],
-  [ 3, 3, 7, ],
-  [ 1, 3, 5 ],
+  [ 4, 6, 10 ],
+  [ 3, 3, 6, ],
+  [ 1, 3, 4 ],
 ];
 
 export const TRASHES_GENERATION = [
+  [ 1, 2, 1 ],
   [ 2, 3, 2 ],
-  [ 3, 4, 3 ],
-  [ 2, 3, 2 ],
+  [ 1, 2, 1 ],
 ];
+
+export const DECOR1_GENERATION = 150;
+export const DECOR2_GENERATION = 30;
 
 export const defaultLocation = (x: number, y: number) => {
   let name;

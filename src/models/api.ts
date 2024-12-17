@@ -85,7 +85,7 @@ export interface IOnExplosion {
   },
 }
 
-// Игрок
+// Юнит
 export interface IUnit extends IMoveObject {
   lifecycle: Lifecycle;
   id: string;
@@ -97,7 +97,7 @@ export interface IUnit extends IMoveObject {
   isFire: boolean;
   isOnHit: boolean;
   isOnHit2: boolean;
-  isSleep: boolean;
+  // isSleep: boolean;
   exp: number,
 }
 
@@ -107,16 +107,6 @@ export interface IUnitBack {
   id: string;
   start: number | null;
   time: number | null;
-}
-
-export interface IUnitStore extends IUnitBack {
-  name: string;
-  race: string;
-  exp: number;
-}
-
-export interface IUnitsStore {
-  [key: string]: IUnitStore[];
 }
 
 // Обновления игрока
