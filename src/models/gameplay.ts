@@ -37,12 +37,12 @@ export enum Races {
     isWeapon: true,
     kick: 6,
     attack: 5,
-    regeneration: 5.5,
-    intelligence: 2.3,
-    armor: 5.7,
+    regeneration: 4.6,
+    intelligence: 2.2,
+    armor: 6,
     toxic: 2,
-    exp: 20,
-    speed: 0.55,
+    exp: 40,
+    speed: 0.5,
   };
 
   const players = {
@@ -64,22 +64,22 @@ export enum Races {
     [Races.mutant]: {
       box: { x: 4, y: 5, z: 2.5 },
       isWeapon: false,
-      kick: 2.2,
-      attack: 1.9,
-      regeneration: 2.4,
-      intelligence: 1.7,
-      armor: 3.3,
-      exp: 40,
+      kick: 2.5,
+      attack: 2.2,
+      regeneration: 2.5,
+      intelligence: 1.8,
+      armor: 3.6,
+      exp: 20,
       toxic: 20,
       speed: 0.65,
     },
     [Races.orc]: {
       box: { x: 2, y: 3.6, z: 1.5 },
       isWeapon: false,
-      kick: 3.5,
+      kick: 3.1,
       attack: 2.5,
-      regeneration: 3.4,
-      intelligence: 2.1,
+      regeneration: 3.2,
+      intelligence: 1.9,
       armor: 4.2,
       exp: 30,
       toxic: 10,
@@ -88,11 +88,11 @@ export enum Races {
     [Races.zombie]: {
       box: { x: 0.6, y: 1.9, z: 0.75 },
       isWeapon: false,
-      kick: 1.8,
-      attack: 4.5,
+      kick: 1.5,
+      attack: 3.8,
       regeneration: 7,
-      intelligence: 1.9,
-      armor: 2.2,
+      intelligence: 2,
+      armor: 1.6,
       exp: 10,
       toxic: 5,
       speed: 0.5,
@@ -161,6 +161,8 @@ export enum Races {
       jump: 25,
       kickTime: 0.35,
       attackTime: 2.7,
+
+      live: 0.775,
     },
     [Races.orc]: {
       name: Races.orc,
@@ -181,6 +183,8 @@ export enum Races {
       jump: 20,
       kickTime: 0.55,
       attackTime: 2.15,
+
+      live: 0.95,
     },
     [Races.zombie]: {
       name: Races.zombie,
@@ -201,6 +205,8 @@ export enum Races {
       jump: 15,
       kickTime: 0.5,
       attackTime: 2.4,
+
+      live: 0.25,
     },
     [Races.soldier]: {
       name: Races.soldier,
@@ -221,6 +227,8 @@ export enum Races {
       jump: 15,
       kickTime: 0.7,
       attackTime: 2.15,
+
+      live: 1.5,
     },
     [Races.cyborg]: {
       name: Races.cyborg,
@@ -241,6 +249,8 @@ export enum Races {
       jump: 15,
       kickTime: 0.7,
       attackTime: 2.15,
+
+      live: 1.5,
     },
   };
 

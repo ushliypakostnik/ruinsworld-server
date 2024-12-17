@@ -407,7 +407,7 @@ export default class Game {
       // console.log(npc.positionX, npc.positionZ, this._p1.distanceTo(this._p2));
 
       // Выход на другую локацию
-      if (this._p1.distanceTo(this._p2) > Number(process.env.SIZE) * 0.9) {
+      if (this._p1.distanceTo(this._p2) > Number(process.env.SIZE) * 0.95) {
         ++this._number;
         this._isRight = npc.positionX >= 0;
         this._isBottom = npc.positionZ >= 0;

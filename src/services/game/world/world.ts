@@ -596,7 +596,7 @@ export default class World {
         this._result = this._octrees[location.id].rayIntersect(this._ray);
         if (this._result) {
           if (this._result.position.y > -2)
-            stone.y = this._result.position.y + 1.6;
+            stone.y = this._result.position.y + 1.45;
           else stone.y = -0.25;
         }
       });
@@ -741,9 +741,6 @@ export default class World {
     locationId: string,
     field: Fields,
   ): void {
-    if (!this.locations[locationId]) {
-      console.log('AAAAAAAA', id, locationId, field, this.locations);
-    }
     this.locations[locationId][field] = this.locations[locationId][
       field
     ].filter((unit) => unit !== id);

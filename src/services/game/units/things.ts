@@ -122,10 +122,10 @@ export default class Things {
       rotateX: Helper.randomInteger(-45, 45),
     };
     this._item.x = Helper.randomInteger(Number(process.env.SIZE) * -0.4, Number(process.env.SIZE) * 0.4);
-    if (this._item.x > 0) this._item.x += 25;
+    if (this._item.x > 0) this._item.x += 15;
     else this._item.x -= 25;
     this._item.z = Helper.randomInteger(Number(process.env.SIZE) * -0.4, Number(process.env.SIZE) * 0.4);
-    if (this._item.z > 0) this._item.z += 25;
+    if (this._item.z > 0) this._item.z += 15;
     else this._item.z -= 25;
 
     this.list.push(this._item);

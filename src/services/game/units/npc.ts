@@ -180,11 +180,7 @@ export default class NPC {
     this.listBack.push({
       id: this._item.id,
       start: this._number,
-      time: Helper.randomInteger(0, Number(process.env.NPC_LIVE_TIME) * 2),
-      /*
-        this._string === Races.bidens
-          ? Helper.randomInteger(0, Number(process.env.NPC_LIVE_TIME)) // Байденсы живут немного поменьше
-          : Helper.randomInteger(0, Number(process.env.NPC_LIVE_TIME) * 2), */
+      time: Helper.randomInteger(0, (Number(process.env.NPC_LIVE_TIME) * 2 * RacesConfig[this._string].live)),
     });
 
     if (id) {
