@@ -1543,7 +1543,7 @@ export default class NPC {
             2) /
             this._RACES.length
         ) {
-          console.log('NPC Эпидемия в: ', race);
+          // console.log('NPC Эпидемия в: ', race);
           this._listAnimate
             .filter(
               (npc) =>
@@ -1562,7 +1562,7 @@ export default class NPC {
               this._item = this._getNPCById(npc.id);
               if (this._item) {
                 this._item.health = -100; // Умер
-                console.log('Умер: ', this._item.id, this._item.exp);
+                // console.log('Умер: ', this._item.id, this._item.exp);
               }
             });
         }
