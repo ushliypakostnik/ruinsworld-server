@@ -65,10 +65,10 @@ export default class NPC {
   private _direction: THREE.Vector3;
   private _updates!: IUpdateMessage[];
   private _listAnimate!: IUnit[];
-  private _listSleepAnimate!: IUnit[];
-  private _listSleepAnimateResult!: IUnit[];
+  // private _listSleepAnimate!: IUnit[];
+  // private _listSleepAnimateResult!: IUnit[];
   private _number!: number;
-  private _number2!: number;
+  // private _number2!: number;
   private _string!: string;
   private _v1!: THREE.Vector3;
   private _v2!: THREE.Vector3;
@@ -180,7 +180,10 @@ export default class NPC {
     this.listBack.push({
       id: this._item.id,
       start: this._number,
-      time: Helper.randomInteger(0, (Number(process.env.NPC_LIVE_TIME) * 2 * RacesConfig[this._string].live)),
+      time: Helper.randomInteger(
+        0,
+        Number(process.env.NPC_LIVE_TIME) * 2 * RacesConfig[this._string].live,
+      ),
     });
 
     if (id) {
@@ -1514,5 +1517,56 @@ export default class NPC {
           if (this._item) this._item.health = -100; // Умер от старости
         }
       });
+  }
+
+  // Иногда - эпидемии среди доминирующих рас - для баланса
+  public cleanCheck(): void {
+    this._RACES.forEach((race) => {
+      // Если особей этой расы больше чем в два раза от нормы - устраиваем эпидемию среди самых старых
+      if (
+        this.counters[race] >
+        (Number(process.env.NPC_ON_LOCATION) *
+          Math.pow(Number(process.env.WORLD) * 2 + 1, 2) *
+          2) /
+          this._RACES.length
+      ) {
+        this._listAnimate = this.list.filter(
+          (npc) =>
+            npc.race === race &&
+            npc.lifecycle !== Lifecycle.dead &&
+            npc.lifecycle !== Lifecycle.born,
+        );
+        if (
+          this._listAnimate.length >
+          (Number(process.env.NPC_ON_LOCATION) *
+            Math.pow(Number(process.env.WORLD) * 2 + 1, 2) *
+            2) /
+            this._RACES.length
+        ) {
+          console.log('NPC Эпидемия в: ', race);
+          this._listAnimate
+            .filter(
+              (npc) =>
+                npc.race === race &&
+                npc.lifecycle !== Lifecycle.dead &&
+                npc.lifecycle !== Lifecycle.born,
+            )
+            .sort((a, b) => b.exp - a.exp)
+            .slice(
+              0,
+              (Number(process.env.NPC_ON_LOCATION) *
+                Math.pow(Number(process.env.WORLD) * 2 + 1, 2)) /
+                this._RACES.length,
+            )
+            .forEach((npc) => {
+              this._item = this._getNPCById(npc.id);
+              if (this._item) {
+                this._item.health = -100; // Умер
+                console.log('Умер: ', this._item.id, this._item.exp);
+              }
+            });
+        }
+      }
+    });
   }
 }

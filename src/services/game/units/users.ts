@@ -56,7 +56,7 @@ export default class Users {
     health: 100,
     name: null,
     positionX: 0,
-    positionY: 0.25,
+    positionY: 1,
     positionZ: 0,
     directionX: -0.7,
     directionY: 0,
@@ -339,12 +339,12 @@ export default class Users {
 
     this._v1 = new THREE.Vector3(
       this._item.positionX,
-      0,
+      1,
       this._item.positionZ,
     ).multiplyScalar(0.85);
 
     this._item.positionX = this._v1.x;
-    this._item.positionY = 0.25;
+    this._item.positionY = 0;
     this._item.positionZ = this._v1.z;
 
     this._mesh = self.scene[this._item.id];
@@ -431,11 +431,10 @@ export default class Users {
     });
   }
 
-  // Очищение проигравших игроков
+  // Очищение проигравших и ушедших игроков
   public cleanCheck(self: ISelf): void {
     this._number = Helper.getUnixtime();
     this.list
-      .filter((player) => player.lifecycle === Lifecycle.dead)
       .forEach((player: IUnit) => {
         // console.log('Users cleanCheck!!!', this._number, player);
         this._itemBack = this._getUserBackById(player.id);
@@ -444,7 +443,7 @@ export default class Users {
           this._number - this._itemBack.time >
             Number(process.env.CLEAN_CHECK_TIME)
         ) {
-          // console.log('Users cleanCheck REMOVE!!! ///////////////////////////////////////////////////');
+          console.log('Users cleanCheck REMOVE!!! ///////////////////////////////////////////////////');
           this._removePlayer(self, player.id);
         }
       });

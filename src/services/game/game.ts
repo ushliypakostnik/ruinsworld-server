@@ -240,6 +240,7 @@ export default class Game {
   // Очистка
   private _cleanCheck(self: ISelf): void {
     this.users.cleanCheck(self);
+    this.npc.cleanCheck();
     this._self.unitsByLocations = this._getUnitsByLocations();
   }
 
